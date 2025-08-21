@@ -28,7 +28,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
     
     const id = parseInt(envelopeId);
     if (isNaN(id) || id < 0) {
-      alert(TEXT.INVALID_ID);
+      alert(TEXT?.INVALID_ID || '请输入有效的红包ID');
       return;
     }
 
@@ -43,7 +43,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
       setClaimResult(null);
     } catch (error) {
       console.error('Query envelope failed:', error);
-      alert(TEXT.QUERY_FAILED);
+      alert(TEXT?.QUERY_FAILED || '查询红包失败，请检查红包ID是否正确');
     }
   };
 
@@ -62,13 +62,13 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
     } catch (error: any) {
       console.error('Claim envelope failed:', error);
       if (error.message && error.message.includes('Already claimed')) {
-        alert(TEXT.ALREADY_CLAIMED_ERROR);
+        alert(TEXT?.ALREADY_CLAIMED_ERROR || '您已经抢过这个红包了！');
       } else if (error.message && error.message.includes('Creator cannot claim')) {
-        alert(TEXT.CREATOR_CANNOT_CLAIM);
+        alert(TEXT?.CREATOR_CANNOT_CLAIM || '创建者不能抢自己的红包！');
       } else if (error.message && error.message.includes('No packets remaining')) {
-        alert(TEXT.NO_PACKETS);
+        alert(TEXT?.NO_PACKETS || '红包已被抢完！');
       } else {
-        alert(TEXT.CLAIM_FAILED);
+        alert(TEXT?.CLAIM_FAILED || '抢红包失败，请重试');
       }
     } finally {
       setClaiming(false);
@@ -99,12 +99,14 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
       margin: '20px',
       color: 'white'
     }}>
-      <h3 style={{ marginTop: 0, marginBottom: '20px' }}>{TEXT.QUERY_ENVELOPE}</h3>
+      <h3 style={{ marginTop: 0, marginBottom: '20px' }}>
+        {TEXT?.QUERY_ENVELOPE || '🔍 查询红包'}
+      </h3>
       
       <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
         <input
           type="number"
-          placeholder={TEXT.ENTER_ID}
+          placeholder={TEXT?.ENTER_ID || '输入红包ID'}
           value={envelopeId}
           onChange={(e) => setEnvelopeId(e.target.value)}
           style={{
@@ -131,7 +133,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
             opacity: (!loading && envelopeId && userAddress) ? 1 : 0.6
           }}
         >
-          {TEXT.QUERY_BUTTON}
+          {TEXT?.QUERY_BUTTON || '查询'}
         </button>
       </div>
 
@@ -142,46 +144,48 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
           padding: '20px',
           marginTop: '20px'
         }}>
-          <h4 style={{ marginTop: 0, marginBottom: '15px' }}>{TEXT.ENVELOPE_INFO}</h4>
+          <h4 style={{ marginTop: 0, marginBottom: '15px' }}>
+            {TEXT?.ENVELOPE_INFO || '📦 红包信息'}
+          </h4>
           <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT.ENVELOPE_ID}</strong> {envelopeInfo.id}
+              <strong>{TEXT?.ENVELOPE_ID || '红包ID:'}</strong> {envelopeInfo.id}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT.CREATOR}</strong> {formatAddress(envelopeInfo.creator)}
+              <strong>{TEXT?.CREATOR || '创建者:'}</strong> {formatAddress(envelopeInfo.creator)}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT.TOTAL_AMOUNT.replace(':', '')}</strong> {envelopeInfo.totalAmount} ETH
+              <strong>{(TEXT?.TOTAL_AMOUNT || '红包总金额:').replace(':', '')}</strong> {envelopeInfo.totalAmount} ETH
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT.REMAINING_AMOUNT}</strong> {envelopeInfo.remainingAmount} ETH
+              <strong>{TEXT?.REMAINING_AMOUNT || '剩余金额:'}</strong> {envelopeInfo.remainingAmount} ETH
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT.TOTAL_PACKETS}</strong> {envelopeInfo.totalPackets}
+              <strong>{TEXT?.TOTAL_PACKETS || '总红包数:'}</strong> {envelopeInfo.totalPackets}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT.REMAINING_PACKETS}</strong> {envelopeInfo.remainingPackets}
+              <strong>{TEXT?.REMAINING_PACKETS || '剩余红包数:'}</strong> {envelopeInfo.remainingPackets}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT.STATUS}</strong>
+              <strong>{TEXT?.STATUS || '状态:'}</strong>
               <span style={{ 
                 color: envelopeInfo.isActive ? '#2ed573' : '#ff4757',
                 fontWeight: 'bold' 
               }}>
-                {envelopeInfo.isActive ? TEXT.ACTIVE : TEXT.ENDED}
+                {envelopeInfo.isActive ? (TEXT?.ACTIVE || ' 🟢 活跃') : (TEXT?.ENDED || ' 🔴 已结束')}
               </span>
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT.CREATED_TIME}</strong> {formatTime(envelopeInfo.createdAt)}
+              <strong>{TEXT?.CREATED_TIME || '创建时间:'}</strong> {formatTime(envelopeInfo.createdAt)}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT.CLAIMED_COUNT}</strong> {envelopeInfo.claimedBy.length}
+              <strong>{TEXT?.CLAIMED_COUNT || '已领取人数:'}</strong> {envelopeInfo.claimedBy.length}
             </div>
           </div>
 
           {envelopeInfo.claimedBy.length > 0 && (
             <div style={{ marginTop: '15px' }}>
-              <strong>{TEXT.CLAIM_RECORDS}</strong>
+              <strong>{TEXT?.CLAIM_RECORDS || '领取记录:'}</strong>
               <div style={{ marginTop: '8px' }}>
                 {envelopeInfo.claimedBy.map((address, index) => (
                   <div key={index} style={{
@@ -208,7 +212,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
                 padding: '15px',
                 color: '#2ed573'
               }}>
-                {TEXT.ALREADY_CLAIMED}
+                {TEXT?.ALREADY_CLAIMED || '✅ 您已经领取过这个红包了'}
               </div>
             ) : canClaim ? (
               <button
@@ -226,7 +230,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
                   opacity: claiming ? 0.6 : 1
                 }}
               >
-                {claiming ? TEXT.CLAIMING : TEXT.CLAIM_ENVELOPE}
+                {claiming ? (TEXT?.CLAIMING || '抢红包中...') : (TEXT?.CLAIM_ENVELOPE || '🎉 抢红包')}
               </button>
             ) : (
               <div style={{
@@ -236,10 +240,10 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
                 padding: '15px',
                 color: '#ff4757'
               }}>
-                {!envelopeInfo.isActive ? TEXT.ENVELOPE_ENDED :
-                 envelopeInfo.remainingPackets === 0 ? TEXT.FULLY_CLAIMED :
-                 envelopeInfo.creator.toLowerCase() === userAddress?.toLowerCase() ? TEXT.CANNOT_CLAIM_OWN :
-                 TEXT.CANNOT_CLAIM}
+                {!envelopeInfo.isActive ? (TEXT?.ENVELOPE_ENDED || '❌ 红包已结束') :
+                 envelopeInfo.remainingPackets === 0 ? (TEXT?.FULLY_CLAIMED || '❌ 红包已被抢完') :
+                 envelopeInfo.creator.toLowerCase() === userAddress?.toLowerCase() ? (TEXT?.CANNOT_CLAIM_OWN || '❌ 不能抢自己的红包') :
+                 (TEXT?.CANNOT_CLAIM || '❌ 无法抢取')}
               </div>
             )}
           </div>
@@ -253,12 +257,14 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
               marginTop: '20px',
               textAlign: 'center'
             }}>
-              <h4 style={{ margin: '0 0 15px 0', color: '#2ed573' }}>{TEXT.CLAIM_SUCCESS}</h4>
+              <h4 style={{ margin: '0 0 15px 0', color: '#2ed573' }}>
+                {TEXT?.CLAIM_SUCCESS || '🎊 恭喜！抢红包成功！'}
+              </h4>
               <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '10px' }}>
                 💰 {claimResult.amount} ETH
               </div>
               <div style={{ fontSize: '12px', color: '#95a5a6' }}>
-                {TEXT.TRANSACTION_HASH}{claimResult.transactionHash.slice(0, 10)}...{claimResult.transactionHash.slice(-8)}
+                {TEXT?.TRANSACTION_HASH || '交易哈希: '}{claimResult.transactionHash.slice(0, 10)}...{claimResult.transactionHash.slice(-8)}
               </div>
             </div>
           )}
