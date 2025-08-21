@@ -1,1 +1,35 @@
-import React from 'react';\nimport { render, screen } from '@testing-library/react';\nimport '@testing-library/jest-dom';\nimport App from './App';\n\njest.mock('ethers', () => ({\n  BrowserProvider: jest.fn(),\n  Contract: jest.fn(),\n  formatEther: jest.fn(() => '0.05'),\n  parseEther: jest.fn(() => '50000000000000000')\n}));\n\nObject.defineProperty(window, 'ethereum', {\n  value: undefined,\n  writable: true\n});\n\ntest('renders red envelope dapp title', () => {\n  render(<App />);\n  const titleElement = screen.getByText(/\u667a\u80fd\u5408\u7ea6\u7ea2\u5305\u7cfb\u7edf/i);\n  expect(titleElement).toBeInTheDocument();\n});\n\ntest('renders connect wallet message when not connected', () => {\n  render(<App />);\n  const connectMessage = screen.getByText(/\u8bf7\u5148\u8fde\u63a5\u60a8\u7684 MetaMask \u94b1\u5305\u5f00\u59cb\u4f7f\u7528/i);\n  expect(connectMessage).toBeInTheDocument();\n});\n\ntest('renders connect MetaMask button', () => {\n  render(<App />);\n  const connectButton = screen.getByText(/\u8fde\u63a5 MetaMask/i);\n  expect(connectButton).toBeInTheDocument();\n});
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import App from './App';
+import { TEXT } from './config/text';
+
+jest.mock('ethers', () => ({
+  BrowserProvider: jest.fn(),
+  Contract: jest.fn(),
+  formatEther: jest.fn(() => '0.05'),
+  parseEther: jest.fn(() => '50000000000000000')
+}));
+
+Object.defineProperty(window, 'ethereum', {
+  value: undefined,
+  writable: true
+});
+
+test('renders red envelope dapp title', () => {
+  render(<App />);
+  const titleElement = screen.getByText(TEXT.TITLE);
+  expect(titleElement).toBeInTheDocument();
+});
+
+test('renders connect wallet message when not connected', () => {
+  render(<App />);
+  const connectMessage = screen.getByText(TEXT.CONNECT_PROMPT);
+  expect(connectMessage).toBeInTheDocument();
+});
+
+test('renders connect MetaMask button', () => {
+  render(<App />);
+  const connectButton = screen.getByText(TEXT.CONNECT_WALLET);
+  expect(connectButton).toBeInTheDocument();
+});
