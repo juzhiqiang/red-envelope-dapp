@@ -1,1 +1,34 @@
-import React from 'react';\nimport { render, screen } from '@testing-library/react';\nimport '@testing-library/jest-dom';\nimport App from './App';\n\n// Mock ethers to prevent errors in tests\njest.mock('ethers', () => ({\n  BrowserProvider: jest.fn(),\n  Contract: jest.fn(),\n  formatEther: jest.fn(() => '0.05'),\n  parseEther: jest.fn(() => '50000000000000000')\n}));\n\n// Mock window.ethereum\nObject.defineProperty(window, 'ethereum', {\n  value: undefined,\n  writable: true\n});\n\ntest('renders red envelope dapp title', () => {\n  render(<App />);\n  const titleElement = screen.getByText(/智能合约红包系统/i);\n  expect(titleElement).toBeInTheDocument();\n});\n\ntest('renders connect wallet message when not connected', () => {\n  render(<App />);\n  const connectMessage = screen.getByText(/请先连接您的 MetaMask 钱包开始使用/i);\n  expect(connectMessage).toBeInTheDocument();\n});\n\ntest('renders connect MetaMask button', () => {\n  render(<App />);\n  const connectButton = screen.getByText(/连接 MetaMask/i);\n  expect(connectButton).toBeInTheDocument();\n});
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import App from './App';
+
+jest.mock('ethers', () => ({
+  BrowserProvider: jest.fn(),
+  Contract: jest.fn(),
+  formatEther: jest.fn(() => '0.05'),
+  parseEther: jest.fn(() => '50000000000000000')
+}));
+
+Object.defineProperty(window, 'ethereum', {
+  value: undefined,
+  writable: true
+});
+
+test('renders red envelope dapp title', () => {
+  render(<App />);
+  const titleElement = screen.getByText(/Red Envelope DApp/i);
+  expect(titleElement).toBeInTheDocument();
+});
+
+test('renders connect wallet message when not connected', () => {
+  render(<App />);
+  const connectMessage = screen.getByText(/Please connect your MetaMask wallet to get started/i);
+  expect(connectMessage).toBeInTheDocument();
+});
+
+test('renders connect MetaMask button', () => {
+  render(<App />);
+  const connectButton = screen.getByText(/Connect MetaMask/i);
+  expect(connectButton).toBeInTheDocument();
+});
