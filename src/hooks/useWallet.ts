@@ -1,1 +1,103 @@
-import { useState, useEffect, useCallback } from 'react';\nimport { BrowserProvider } from 'ethers';\n\nexport const useWallet = () => {\n  const [account, setAccount] = useState<string | null>(null);\n  const [provider, setProvider] = useState<BrowserProvider | null>(null);\n  const [isConnecting, setIsConnecting] = useState(false);\n\n  const connectWallet = useCallback(async () => {\n    if (!window.ethereum) {\n      alert('请安装 MetaMask 钱包!');\n      return;\n    }\n\n    setIsConnecting(true);\n    try {\n      // 请求账户连接\n      const accounts = await window.ethereum.request({\n        method: 'eth_requestAccounts',\n      });\n      \n      if (accounts.length > 0) {\n        const browserProvider = new BrowserProvider(window.ethereum);\n        setProvider(browserProvider);\n        setAccount(accounts[0]);\n        console.log('钱包连接成功:', accounts[0]);\n      }\n    } catch (error: any) {\n      console.error('连接钱包失败:', error);\n      if (error.code === 4001) {\n        alert('用户拒绝了连接请求');\n      } else {\n        alert('连接钱包失败，请重试');\n      }\n    } finally {\n      setIsConnecting(false);\n    }\n  }, []);\n\n  const disconnectWallet = useCallback(() => {\n    setAccount(null);\n    setProvider(null);\n    console.log('钱包已断开连接');\n  }, []);\n\n  // 检查是否已经连接\n  const checkConnection = useCallback(async () => {\n    if (window.ethereum) {\n      try {\n        const accounts = await window.ethereum.request({\n          method: 'eth_accounts'\n        });\n        \n        if (accounts.length > 0) {\n          const browserProvider = new BrowserProvider(window.ethereum);\n          setProvider(browserProvider);\n          setAccount(accounts[0]);\n        }\n      } catch (error) {\n        console.error('检查连接状态失败:', error);\n      }\n    }\n  }, []);\n\n  useEffect(() => {\n    // 页面加载时检查连接状态\n    checkConnection();\n\n    // 监听账户变化\n    if (window.ethereum) {\n      const handleAccountsChanged = (accounts: string[]) => {\n        console.log('账户变化:', accounts);\n        if (accounts.length === 0) {\n          disconnectWallet();\n        } else {\n          setAccount(accounts[0]);\n          // 如果账户变化，需要重新创建 provider\n          const newProvider = new BrowserProvider(window.ethereum);\n          setProvider(newProvider);\n        }\n      };\n\n      const handleChainChanged = (chainId: string) => {\n        console.log('网络变化:', chainId);\n        // 网络变化时重新加载页面（简单的处理方式）\n        window.location.reload();\n      };\n\n      // 添加事件监听器\n      window.ethereum.on('accountsChanged', handleAccountsChanged);\n      window.ethereum.on('chainChanged', handleChainChanged);\n\n      // 清理函数\n      return () => {\n        if (window.ethereum && window.ethereum.removeListener) {\n          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);\n          window.ethereum.removeListener('chainChanged', handleChainChanged);\n        }\n      };\n    }\n  }, [checkConnection, disconnectWallet]);\n\n  return {\n    account,\n    provider,\n    isConnecting,\n    connectWallet,\n    disconnectWallet,\n    checkConnection\n  };\n};
+import { useState, useEffect, useCallback } from 'react';
+import { BrowserProvider } from 'ethers';
+
+export const useWallet = () => {
+  const [account, setAccount] = useState<string | null>(null);
+  const [provider, setProvider] = useState<BrowserProvider | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const connectWallet = useCallback(async () => {
+    if (!window.ethereum) {
+      alert('Please install MetaMask wallet!');
+      return;
+    }
+
+    setIsConnecting(true);
+    try {
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts',
+      });
+      
+      if (accounts.length > 0) {
+        const browserProvider = new BrowserProvider(window.ethereum);
+        setProvider(browserProvider);
+        setAccount(accounts[0]);
+        console.log('Wallet connected successfully:', accounts[0]);
+      }
+    } catch (error: any) {
+      console.error('Failed to connect wallet:', error);
+      if (error.code === 4001) {
+        alert('User rejected the connection request');
+      } else {
+        alert('Failed to connect wallet, please try again');
+      }
+    } finally {
+      setIsConnecting(false);
+    }
+  }, []);
+
+  const disconnectWallet = useCallback(() => {
+    setAccount(null);
+    setProvider(null);
+    console.log('Wallet disconnected');
+  }, []);
+
+  const checkConnection = useCallback(async () => {
+    if (window.ethereum) {
+      try {
+        const accounts = await window.ethereum.request({
+          method: 'eth_accounts'
+        });
+        
+        if (accounts.length > 0) {
+          const browserProvider = new BrowserProvider(window.ethereum);
+          setProvider(browserProvider);
+          setAccount(accounts[0]);
+        }
+      } catch (error) {
+        console.error('Failed to check connection status:', error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    checkConnection();
+
+    if (window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        console.log('Accounts changed:', accounts);
+        if (accounts.length === 0) {
+          disconnectWallet();
+        } else {
+          setAccount(accounts[0]);
+          const newProvider = new BrowserProvider(window.ethereum);
+          setProvider(newProvider);
+        }
+      };
+
+      const handleChainChanged = (chainId: string) => {
+        console.log('Network changed:', chainId);
+        window.location.reload();
+      };
+
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+
+      return () => {
+        if (window.ethereum && window.ethereum.removeListener) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+          window.ethereum.removeListener('chainChanged', handleChainChanged);
+        }
+      };
+    }
+  }, [checkConnection, disconnectWallet]);
+
+  return {
+    account,
+    provider,
+    isConnecting,
+    connectWallet,
+    disconnectWallet,
+    checkConnection
+  };
+};

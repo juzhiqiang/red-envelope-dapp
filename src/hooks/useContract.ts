@@ -1,1 +1,173 @@
-import { useState, useCallback } from 'react';\nimport { Contract, formatEther, parseEther } from 'ethers';\nimport type { BrowserProvider } from 'ethers';\nimport { EnvelopeInfo, ClaimResult } from '../types';\n\nconst CONTRACT_ABI = [\n  \"function createEnvelope() external payable\",\n  \"function claimEnvelope(uint256 _envelopeId) external\",\n  \"function getEnvelope(uint256 _envelopeId) external view returns (uint256 id, address creator, uint256 totalAmount, uint256 remainingAmount, uint256 totalPackets, uint256 remainingPackets, address[] claimedBy, bool isActive, uint256 createdAt)\",\n  \"function hasUserClaimed(uint256 _envelopeId, address _user) external view returns (bool)\",\n  \"function getTotalEnvelopes() external view returns (uint256)\",\n  \"function nextEnvelopeId() external view returns (uint256)\",\n  \"event EnvelopeCreated(uint256 indexed envelopeId, address indexed creator, uint256 totalAmount, uint256 packets)\",\n  \"event EnvelopeClaimed(uint256 indexed envelopeId, address indexed claimer, uint256 amount)\"\n];\n\n// 这里使用一个示例合约地址，实际部署后需要替换\nconst CONTRACT_ADDRESS = \"0x5FbDB2315678afecb367f032d93F642f64180aa3\";\n\nexport const useContract = (provider: BrowserProvider | null) => {\n  const [loading, setLoading] = useState(false);\n\n  const getContract = useCallback(async (withSigner = false) => {\n    if (!provider) return null;\n    \n    try {\n      if (withSigner) {\n        const signer = await provider.getSigner();\n        return new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);\n      }\n      return new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);\n    } catch (error) {\n      console.error('获取合约实例失败:', error);\n      return null;\n    }\n  }, [provider]);\n\n  const createEnvelope = async (): Promise<string | null> => {\n    if (!provider) {\n      throw new Error('请先连接钱包');\n    }\n    \n    setLoading(true);\n    try {\n      const contract = await getContract(true);\n      if (!contract) {\n        throw new Error('无法获取合约实例');\n      }\n      \n      const tx = await contract.createEnvelope({\n        value: parseEther(\"0.05\") // 0.05 ETH\n      });\n      \n      const receipt = await tx.wait();\n      return receipt?.hash || null;\n    } catch (error: any) {\n      console.error('创建红包失败:', error);\n      if (error.code === 'ACTION_REJECTED') {\n        throw new Error('用户取消了交易');\n      } else if (error.code === 'INSUFFICIENT_FUNDS') {\n        throw new Error('余额不足');\n      }\n      throw error;\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  const claimEnvelope = async (envelopeId: number): Promise<ClaimResult | null> => {\n    if (!provider) {\n      throw new Error('请先连接钱包');\n    }\n    \n    setLoading(true);\n    try {\n      const contract = await getContract(true);\n      if (!contract) {\n        throw new Error('无法获取合约实例');\n      }\n      \n      const tx = await contract.claimEnvelope(envelopeId);\n      const receipt = await tx.wait();\n      \n      // 从事件中获取抢到的金额\n      let claimedAmount = \"0\";\n      if (receipt?.logs) {\n        for (const log of receipt.logs) {\n          try {\n            const parsed = contract.interface.parseLog({\n              topics: log.topics,\n              data: log.data\n            });\n            if (parsed?.name === 'EnvelopeClaimed') {\n              claimedAmount = formatEther(parsed.args.amount || 0);\n              break;\n            }\n          } catch {\n            // 忽略解析失败的日志\n          }\n        }\n      }\n      \n      return {\n        amount: claimedAmount,\n        transactionHash: receipt?.hash || ''\n      };\n    } catch (error: any) {\n      console.error('抢红包失败:', error);\n      if (error.code === 'ACTION_REJECTED') {\n        throw new Error('用户取消了交易');\n      }\n      throw error;\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  const getEnvelope = async (envelopeId: number): Promise<EnvelopeInfo | null> => {\n    try {\n      const contract = await getContract(false);\n      if (!contract) return null;\n      \n      const result = await contract.getEnvelope(envelopeId);\n      return {\n        id: Number(result.id),\n        creator: result.creator,\n        totalAmount: formatEther(result.totalAmount),\n        remainingAmount: formatEther(result.remainingAmount),\n        totalPackets: Number(result.totalPackets),\n        remainingPackets: Number(result.remainingPackets),\n        claimedBy: result.claimedBy,\n        isActive: result.isActive,\n        createdAt: Number(result.createdAt)\n      };\n    } catch (error) {\n      console.error('获取红包信息失败:', error);\n      return null;\n    }\n  };\n\n  const hasUserClaimed = async (envelopeId: number, userAddress: string): Promise<boolean> => {\n    try {\n      const contract = await getContract(false);\n      if (!contract) return false;\n      \n      return await contract.hasUserClaimed(envelopeId, userAddress);\n    } catch (error) {\n      console.error('检查用户是否已抢红包失败:', error);\n      return false;\n    }\n  };\n\n  const getTotalEnvelopes = async (): Promise<number> => {\n    try {\n      const contract = await getContract(false);\n      if (!contract) return 0;\n      \n      const total = await contract.nextEnvelopeId();\n      return Number(total);\n    } catch (error) {\n      console.error('获取红包总数失败:', error);\n      return 0;\n    }\n  };\n\n  return {\n    loading,\n    createEnvelope,\n    claimEnvelope,\n    getEnvelope,\n    hasUserClaimed,\n    getTotalEnvelopes,\n    contractAddress: CONTRACT_ADDRESS\n  };\n};
+import { useState, useCallback } from 'react';
+import { Contract, formatEther, parseEther } from 'ethers';
+import type { BrowserProvider } from 'ethers';
+import { EnvelopeInfo, ClaimResult } from '../types';
+
+const CONTRACT_ABI = [
+  "function createEnvelope() external payable",
+  "function claimEnvelope(uint256 _envelopeId) external",
+  "function getEnvelope(uint256 _envelopeId) external view returns (uint256 id, address creator, uint256 totalAmount, uint256 remainingAmount, uint256 totalPackets, uint256 remainingPackets, address[] claimedBy, bool isActive, uint256 createdAt)",
+  "function hasUserClaimed(uint256 _envelopeId, address _user) external view returns (bool)",
+  "function getTotalEnvelopes() external view returns (uint256)",
+  "function nextEnvelopeId() external view returns (uint256)",
+  "event EnvelopeCreated(uint256 indexed envelopeId, address indexed creator, uint256 totalAmount, uint256 packets)",
+  "event EnvelopeClaimed(uint256 indexed envelopeId, address indexed claimer, uint256 amount)"
+];
+
+const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
+export const useContract = (provider: BrowserProvider | null) => {
+  const [loading, setLoading] = useState(false);
+
+  const getContract = useCallback(async (withSigner = false) => {
+    if (!provider) return null;
+    
+    try {
+      if (withSigner) {
+        const signer = await provider.getSigner();
+        return new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      }
+      return new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+    } catch (error) {
+      console.error('Failed to get contract instance:', error);
+      return null;
+    }
+  }, [provider]);
+
+  const createEnvelope = async (): Promise<string | null> => {
+    if (!provider) {
+      throw new Error('Please connect wallet first');
+    }
+    
+    setLoading(true);
+    try {
+      const contract = await getContract(true);
+      if (!contract) {
+        throw new Error('Unable to get contract instance');
+      }
+      
+      const tx = await contract.createEnvelope({
+        value: parseEther("0.05")
+      });
+      
+      const receipt = await tx.wait();
+      return receipt?.hash || null;
+    } catch (error: any) {
+      console.error('Failed to create envelope:', error);
+      if (error.code === 'ACTION_REJECTED') {
+        throw new Error('User cancelled the transaction');
+      } else if (error.code === 'INSUFFICIENT_FUNDS') {
+        throw new Error('Insufficient balance');
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const claimEnvelope = async (envelopeId: number): Promise<ClaimResult | null> => {
+    if (!provider) {
+      throw new Error('Please connect wallet first');
+    }
+    
+    setLoading(true);
+    try {
+      const contract = await getContract(true);
+      if (!contract) {
+        throw new Error('Unable to get contract instance');
+      }
+      
+      const tx = await contract.claimEnvelope(envelopeId);
+      const receipt = await tx.wait();
+      
+      let claimedAmount = "0";
+      if (receipt?.logs) {
+        for (const log of receipt.logs) {
+          try {
+            const parsed = contract.interface.parseLog({
+              topics: log.topics,
+              data: log.data
+            });
+            if (parsed?.name === 'EnvelopeClaimed') {
+              claimedAmount = formatEther(parsed.args.amount || 0);
+              break;
+            }
+          } catch {
+            // Ignore failed log parsing
+          }
+        }
+      }
+      
+      return {
+        amount: claimedAmount,
+        transactionHash: receipt?.hash || ''
+      };
+    } catch (error: any) {
+      console.error('Failed to claim envelope:', error);
+      if (error.code === 'ACTION_REJECTED') {
+        throw new Error('User cancelled the transaction');
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getEnvelope = async (envelopeId: number): Promise<EnvelopeInfo | null> => {
+    try {
+      const contract = await getContract(false);
+      if (!contract) return null;
+      
+      const result = await contract.getEnvelope(envelopeId);
+      return {
+        id: Number(result.id),
+        creator: result.creator,
+        totalAmount: formatEther(result.totalAmount),
+        remainingAmount: formatEther(result.remainingAmount),
+        totalPackets: Number(result.totalPackets),
+        remainingPackets: Number(result.remainingPackets),
+        claimedBy: result.claimedBy,
+        isActive: result.isActive,
+        createdAt: Number(result.createdAt)
+      };
+    } catch (error) {
+      console.error('Failed to get envelope info:', error);
+      return null;
+    }
+  };
+
+  const hasUserClaimed = async (envelopeId: number, userAddress: string): Promise<boolean> => {
+    try {
+      const contract = await getContract(false);
+      if (!contract) return false;
+      
+      return await contract.hasUserClaimed(envelopeId, userAddress);
+    } catch (error) {
+      console.error('Failed to check if user claimed:', error);
+      return false;
+    }
+  };
+
+  const getTotalEnvelopes = async (): Promise<number> => {
+    try {
+      const contract = await getContract(false);
+      if (!contract) return 0;
+      
+      const total = await contract.nextEnvelopeId();
+      return Number(total);
+    } catch (error) {
+      console.error('Failed to get total envelopes:', error);
+      return 0;
+    }
+  };
+
+  return {
+    loading,
+    createEnvelope,
+    claimEnvelope,
+    getEnvelope,
+    hasUserClaimed,
+    getTotalEnvelopes,
+    contractAddress: CONTRACT_ADDRESS
+  };
+};

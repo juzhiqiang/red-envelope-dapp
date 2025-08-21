@@ -13,7 +13,7 @@ const EnvelopeCreator: React.FC<EnvelopeCreatorProps> = ({ onCreateEnvelope, loa
     try {
       await onCreateEnvelope();
     } catch (error) {
-      console.error('创建红包失败:', error);
+      console.error('Failed to create envelope:', error);
     } finally {
       setCreating(false);
     }
@@ -29,11 +29,11 @@ const EnvelopeCreator: React.FC<EnvelopeCreatorProps> = ({ onCreateEnvelope, loa
       textAlign: 'center',
       color: 'white'
     }}>
-      <h3 style={{ marginTop: 0, marginBottom: '20px' }}>🧧 创建红包</h3>
+      <h3 style={{ marginTop: 0, marginBottom: '20px' }}>🧧 Create Red Envelope</h3>
       <div style={{ marginBottom: '20px', fontSize: '16px', lineHeight: '1.6' }}>
-        <p>💰 红包总金额: <strong>0.05 ETH</strong></p>
-        <p>📦 红包个数: <strong>6 个</strong></p>
-        <p>🎲 随机分配金额到每个红包</p>
+        <p>💰 Total Amount: <strong>0.05 ETH</strong></p>
+        <p>📦 Number of Packets: <strong>6 packets</strong></p>
+        <p>🎲 Random amount allocation to each packet</p>
       </div>
       <button
         onClick={handleCreate}
@@ -51,7 +51,7 @@ const EnvelopeCreator: React.FC<EnvelopeCreatorProps> = ({ onCreateEnvelope, loa
           opacity: (loading || creating) ? 0.6 : 1
         }}
       >
-        {creating ? '创建中...' : '🚀 创建红包'}
+        {creating ? 'Creating...' : '🚀 Create Envelope'}
       </button>
     </div>
   );
