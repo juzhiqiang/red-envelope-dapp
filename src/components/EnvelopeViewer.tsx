@@ -90,6 +90,30 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
     userAddress && 
     envelopeInfo.creator.toLowerCase() !== userAddress.toLowerCase();
 
+  const getClaimButtonText = () => {
+    if (claiming) return TEXT?.CLAIMING || '抢红包中...';
+    if (envelopeInfo?.remainingPackets === 6) return '🎉 开抢！第一个红包';
+    return `🎉 抢红包 (还剩${envelopeInfo?.remainingPackets}个)`;
+  };
+
+  const getStatusMessage = () => {
+    if (!envelopeInfo) return '';
+    
+    if (!envelopeInfo.isActive) {
+      return TEXT?.ENVELOPE_ENDED || '❌ 红包已被抢完';
+    }
+    
+    if (envelopeInfo.remainingPackets === 0) {
+      return TEXT?.FULLY_CLAIMED || '❌ 红包已被抢光了';
+    }
+    
+    if (envelopeInfo.creator.toLowerCase() === userAddress?.toLowerCase()) {
+      return TEXT?.CANNOT_CLAIM_OWN || '❌ 不能抢自己创建的红包';
+    }
+    
+    return TEXT?.CANNOT_CLAIM || '❌ 无法抢取';
+  };
+
   return (
     <div style={{
       background: 'rgba(255, 255, 255, 0.1)',
@@ -147,6 +171,35 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
           <h4 style={{ marginTop: 0, marginBottom: '15px' }}>
             {TEXT?.ENVELOPE_INFO || '📦 红包信息'}
           </h4>
+          
+          {/* 红包进度条 */}
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '5px' 
+            }}>
+              <span style={{ fontSize: '14px' }}>抢取进度</span>
+              <span style={{ fontSize: '14px' }}>
+                {envelopeInfo.totalPackets - envelopeInfo.remainingPackets}/{envelopeInfo.totalPackets}
+              </span>
+            </div>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: '10px',
+              height: '8px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                background: envelopeInfo.isActive ? '#2ed573' : '#ff4757',
+                height: '100%',
+                width: `${((envelopeInfo.totalPackets - envelopeInfo.remainingPackets) / envelopeInfo.totalPackets) * 100}%`,
+                transition: 'width 0.3s ease'
+              }} />
+            </div>
+          </div>
+
           <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
             <div style={{ marginBottom: '8px' }}>
               <strong>{TEXT?.ENVELOPE_ID || '红包ID:'}</strong> {envelopeInfo.id}
@@ -161,10 +214,14 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
               <strong>{TEXT?.REMAINING_AMOUNT || '剩余金额:'}</strong> {envelopeInfo.remainingAmount} ETH
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT?.TOTAL_PACKETS || '总红包数:'}</strong> {envelopeInfo.totalPackets}
-            </div>
-            <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT?.REMAINING_PACKETS || '剩余红包数:'}</strong> {envelopeInfo.remainingPackets}
+              <strong>{TEXT?.REMAINING_PACKETS || '剩余红包数:'}</strong> 
+              <span style={{ 
+                color: envelopeInfo.remainingPackets > 0 ? '#2ed573' : '#ff4757',
+                fontWeight: 'bold',
+                marginLeft: '5px'
+              }}>
+                {envelopeInfo.remainingPackets}
+              </span>
             </div>
             <div style={{ marginBottom: '8px' }}>
               <strong>{TEXT?.STATUS || '状态:'}</strong>
@@ -172,20 +229,20 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
                 color: envelopeInfo.isActive ? '#2ed573' : '#ff4757',
                 fontWeight: 'bold' 
               }}>
-                {envelopeInfo.isActive ? (TEXT?.ACTIVE || ' 🟢 活跃') : (TEXT?.ENDED || ' 🔴 已结束')}
+                {envelopeInfo.isActive ? (TEXT?.ACTIVE || ' 🟢 可抢取') : (TEXT?.ENDED || ' 🔴 已抢完')}
               </span>
             </div>
             <div style={{ marginBottom: '8px' }}>
               <strong>{TEXT?.CREATED_TIME || '创建时间:'}</strong> {formatTime(envelopeInfo.createdAt)}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT?.CLAIMED_COUNT || '已领取人数:'}</strong> {envelopeInfo.claimedBy.length}
+              <strong>{TEXT?.CLAIMED_COUNT || '已抢取人数:'}</strong> {envelopeInfo.claimedBy.length}
             </div>
           </div>
 
           {envelopeInfo.claimedBy.length > 0 && (
             <div style={{ marginTop: '15px' }}>
-              <strong>{TEXT?.CLAIM_RECORDS || '领取记录:'}</strong>
+              <strong>{TEXT?.CLAIM_RECORDS || '抢取记录:'}</strong>
               <div style={{ marginTop: '8px' }}>
                 {envelopeInfo.claimedBy.map((address, index) => (
                   <div key={index} style={{
@@ -194,9 +251,12 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
                     borderRadius: '5px',
                     marginBottom: '5px',
                     fontSize: '12px',
-                    fontFamily: 'monospace'
+                    fontFamily: 'monospace',
+                    display: 'flex',
+                    justifyContent: 'space-between'
                   }}>
-                    {index + 1}. {formatAddress(address)}
+                    <span>{index + 1}. {formatAddress(address)}</span>
+                    <span style={{ color: '#2ed573' }}>✓ 已抢到</span>
                   </div>
                 ))}
               </div>
@@ -212,7 +272,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
                 padding: '15px',
                 color: '#2ed573'
               }}>
-                {TEXT?.ALREADY_CLAIMED || '✅ 您已经领取过这个红包了'}
+                {TEXT?.ALREADY_CLAIMED || '✅ 您已经抢过这个红包了'}
               </div>
             ) : canClaim ? (
               <button
@@ -227,10 +287,12 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
                   fontSize: '18px',
                   fontWeight: 'bold',
                   cursor: claiming ? 'not-allowed' : 'pointer',
-                  opacity: claiming ? 0.6 : 1
+                  opacity: claiming ? 0.6 : 1,
+                  transform: claiming ? 'none' : 'scale(1)',
+                  transition: 'all 0.2s ease'
                 }}
               >
-                {claiming ? (TEXT?.CLAIMING || '抢红包中...') : (TEXT?.CLAIM_ENVELOPE || '🎉 抢红包')}
+                {getClaimButtonText()}
               </button>
             ) : (
               <div style={{
@@ -240,10 +302,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
                 padding: '15px',
                 color: '#ff4757'
               }}>
-                {!envelopeInfo.isActive ? (TEXT?.ENVELOPE_ENDED || '❌ 红包已结束') :
-                 envelopeInfo.remainingPackets === 0 ? (TEXT?.FULLY_CLAIMED || '❌ 红包已被抢完') :
-                 envelopeInfo.creator.toLowerCase() === userAddress?.toLowerCase() ? (TEXT?.CANNOT_CLAIM_OWN || '❌ 不能抢自己的红包') :
-                 (TEXT?.CANNOT_CLAIM || '❌ 无法抢取')}
+                {getStatusMessage()}
               </div>
             )}
           </div>
@@ -260,11 +319,14 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
               <h4 style={{ margin: '0 0 15px 0', color: '#2ed573' }}>
                 {TEXT?.CLAIM_SUCCESS || '🎊 恭喜！抢红包成功！'}
               </h4>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '10px' }}>
+              <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '10px', color: '#2ed573' }}>
                 💰 {claimResult.amount} ETH
               </div>
               <div style={{ fontSize: '12px', color: '#95a5a6' }}>
                 {TEXT?.TRANSACTION_HASH || '交易哈希: '}{claimResult.transactionHash.slice(0, 10)}...{claimResult.transactionHash.slice(-8)}
+              </div>
+              <div style={{ fontSize: '14px', color: '#ddd', marginTop: '10px' }}>
+                🎉 手气不错！快去抢下一个红包吧！
               </div>
             </div>
           )}
