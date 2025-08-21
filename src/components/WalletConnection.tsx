@@ -48,7 +48,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
               fontSize: '14px'
             }}
           >
-            断开连接
+            Disconnect
           </button>
         </>
       ) : (
@@ -67,7 +67,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
             opacity: isConnecting ? 0.6 : 1
           }}
         >
-          {isConnecting ? '连接中...' : '连接 MetaMask'}
+          {isConnecting ? 'Connecting...' : 'Connect MetaMask'}
         </button>
       )}
     </div>
