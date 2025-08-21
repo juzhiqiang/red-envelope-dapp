@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { EnvelopeInfo, ClaimResult } from '../types';
+import { TEXT } from '../config/text';
 
 interface EnvelopeViewerProps {
   onQueryEnvelope: (id: number) => Promise<EnvelopeInfo | null>;
@@ -27,7 +28,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
     
     const id = parseInt(envelopeId);
     if (isNaN(id) || id < 0) {
-      alert('\u8bf7\u8f93\u5165\u6709\u6548\u7684\u7ea2\u5305ID');
+      alert(TEXT.INVALID_ID);
       return;
     }
 
@@ -41,8 +42,8 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
       setHasClaimed(claimed);
       setClaimResult(null);
     } catch (error) {
-      console.error('\u67e5\u8be2\u7ea2\u5305\u5931\u8d25:', error);
-      alert('\u67e5\u8be2\u7ea2\u5305\u5931\u8d25\uff0c\u8bf7\u68c0\u67e5\u7ea2\u5305ID\u662f\u5426\u6b63\u786e');
+      console.error('Query envelope failed:', error);
+      alert(TEXT.QUERY_FAILED);
     }
   };
 
@@ -59,15 +60,15 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
         setEnvelopeInfo(updatedInfo);
       }
     } catch (error: any) {
-      console.error('\u62a2\u7ea2\u5305\u5931\u8d25:', error);
+      console.error('Claim envelope failed:', error);
       if (error.message && error.message.includes('Already claimed')) {
-        alert('\u60a8\u5df2\u7ecf\u62a2\u8fc7\u8fd9\u4e2a\u7ea2\u5305\u4e86\uff01');
+        alert(TEXT.ALREADY_CLAIMED_ERROR);
       } else if (error.message && error.message.includes('Creator cannot claim')) {
-        alert('\u521b\u5efa\u8005\u4e0d\u80fd\u62a2\u81ea\u5df1\u7684\u7ea2\u5305\uff01');
+        alert(TEXT.CREATOR_CANNOT_CLAIM);
       } else if (error.message && error.message.includes('No packets remaining')) {
-        alert('\u7ea2\u5305\u5df2\u88ab\u62a2\u5b8c\uff01');
+        alert(TEXT.NO_PACKETS);
       } else {
-        alert('\u62a2\u7ea2\u5305\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5');
+        alert(TEXT.CLAIM_FAILED);
       }
     } finally {
       setClaiming(false);
@@ -98,12 +99,12 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
       margin: '20px',
       color: 'white'
     }}>
-      <h3 style={{ marginTop: 0, marginBottom: '20px' }}>{'\ud83d\udd0d \u67e5\u8be2\u7ea2\u5305'}</h3>
+      <h3 style={{ marginTop: 0, marginBottom: '20px' }}>{TEXT.QUERY_ENVELOPE}</h3>
       
       <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
         <input
           type="number"
-          placeholder="\u8f93\u5165\u7ea2\u5305ID"
+          placeholder={TEXT.ENTER_ID}
           value={envelopeId}
           onChange={(e) => setEnvelopeId(e.target.value)}
           style={{
@@ -130,7 +131,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
             opacity: (!loading && envelopeId && userAddress) ? 1 : 0.6
           }}
         >
-          {'\u67e5\u8be2'}
+          {TEXT.QUERY_BUTTON}
         </button>
       </div>
 
@@ -141,46 +142,46 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
           padding: '20px',
           marginTop: '20px'
         }}>
-          <h4 style={{ marginTop: 0, marginBottom: '15px' }}>{'\ud83d\udce6 \u7ea2\u5305\u4fe1\u606f'}</h4>
+          <h4 style={{ marginTop: 0, marginBottom: '15px' }}>{TEXT.ENVELOPE_INFO}</h4>
           <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{'\u7ea2\u5305ID:'}</strong> {envelopeInfo.id}
+              <strong>{TEXT.ENVELOPE_ID}</strong> {envelopeInfo.id}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{'\u521b\u5efa\u8005:'}</strong> {formatAddress(envelopeInfo.creator)}
+              <strong>{TEXT.CREATOR}</strong> {formatAddress(envelopeInfo.creator)}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{'\u603b\u91d1\u989d:'}</strong> {envelopeInfo.totalAmount} ETH
+              <strong>{TEXT.TOTAL_AMOUNT.replace(':', '')}</strong> {envelopeInfo.totalAmount} ETH
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{'\u5269\u4f59\u91d1\u989d:'}</strong> {envelopeInfo.remainingAmount} ETH
+              <strong>{TEXT.REMAINING_AMOUNT}</strong> {envelopeInfo.remainingAmount} ETH
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{'\u603b\u7ea2\u5305\u6570:'}</strong> {envelopeInfo.totalPackets}
+              <strong>{TEXT.TOTAL_PACKETS}</strong> {envelopeInfo.totalPackets}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{'\u5269\u4f59\u7ea2\u5305\u6570:'}</strong> {envelopeInfo.remainingPackets}
+              <strong>{TEXT.REMAINING_PACKETS}</strong> {envelopeInfo.remainingPackets}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{'\u72b6\u6001:'}</strong>
+              <strong>{TEXT.STATUS}</strong>
               <span style={{ 
                 color: envelopeInfo.isActive ? '#2ed573' : '#ff4757',
                 fontWeight: 'bold' 
               }}>
-                {envelopeInfo.isActive ? ' \ud83d\udfe2 \u6d3b\u8dc3' : ' \ud83d\udd34 \u5df2\u7ed3\u675f'}
+                {envelopeInfo.isActive ? TEXT.ACTIVE : TEXT.ENDED}
               </span>
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{'\u521b\u5efa\u65f6\u95f4:'}</strong> {formatTime(envelopeInfo.createdAt)}
+              <strong>{TEXT.CREATED_TIME}</strong> {formatTime(envelopeInfo.createdAt)}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>{'\u5df2\u9886\u53d6\u4eba\u6570:'}</strong> {envelopeInfo.claimedBy.length}
+              <strong>{TEXT.CLAIMED_COUNT}</strong> {envelopeInfo.claimedBy.length}
             </div>
           </div>
 
           {envelopeInfo.claimedBy.length > 0 && (
             <div style={{ marginTop: '15px' }}>
-              <strong>{'\u9886\u53d6\u8bb0\u5f55:'}</strong>
+              <strong>{TEXT.CLAIM_RECORDS}</strong>
               <div style={{ marginTop: '8px' }}>
                 {envelopeInfo.claimedBy.map((address, index) => (
                   <div key={index} style={{
@@ -207,7 +208,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
                 padding: '15px',
                 color: '#2ed573'
               }}>
-                {'\u2705 \u60a8\u5df2\u7ecf\u9886\u53d6\u8fc7\u8fd9\u4e2a\u7ea2\u5305\u4e86'}
+                {TEXT.ALREADY_CLAIMED}
               </div>
             ) : canClaim ? (
               <button
@@ -225,7 +226,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
                   opacity: claiming ? 0.6 : 1
                 }}
               >
-                {claiming ? '\u62a2\u7ea2\u5305\u4e2d...' : '\ud83c\udf89 \u62a2\u7ea2\u5305'}
+                {claiming ? TEXT.CLAIMING : TEXT.CLAIM_ENVELOPE}
               </button>
             ) : (
               <div style={{
@@ -235,10 +236,10 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
                 padding: '15px',
                 color: '#ff4757'
               }}>
-                {!envelopeInfo.isActive ? '\u274c \u7ea2\u5305\u5df2\u7ed3\u675f' :
-                 envelopeInfo.remainingPackets === 0 ? '\u274c \u7ea2\u5305\u5df2\u88ab\u62a2\u5b8c' :
-                 envelopeInfo.creator.toLowerCase() === userAddress?.toLowerCase() ? '\u274c \u4e0d\u80fd\u62a2\u81ea\u5df1\u7684\u7ea2\u5305' :
-                 '\u274c \u65e0\u6cd5\u62a2\u53d6'}
+                {!envelopeInfo.isActive ? TEXT.ENVELOPE_ENDED :
+                 envelopeInfo.remainingPackets === 0 ? TEXT.FULLY_CLAIMED :
+                 envelopeInfo.creator.toLowerCase() === userAddress?.toLowerCase() ? TEXT.CANNOT_CLAIM_OWN :
+                 TEXT.CANNOT_CLAIM}
               </div>
             )}
           </div>
@@ -252,12 +253,12 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
               marginTop: '20px',
               textAlign: 'center'
             }}>
-              <h4 style={{ margin: '0 0 15px 0', color: '#2ed573' }}>{'\ud83c\udf8a \u606d\u559c\uff01\u62a2\u7ea2\u5305\u6210\u529f\uff01'}</h4>
+              <h4 style={{ margin: '0 0 15px 0', color: '#2ed573' }}>{TEXT.CLAIM_SUCCESS}</h4>
               <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '10px' }}>
-                {'\ud83d\udcb0 '}{claimResult.amount} ETH
+                💰 {claimResult.amount} ETH
               </div>
               <div style={{ fontSize: '12px', color: '#95a5a6' }}>
-                {'\u4ea4\u6613\u54c8\u5e0c: '}{claimResult.transactionHash.slice(0, 10)}...{claimResult.transactionHash.slice(-8)}
+                {TEXT.TRANSACTION_HASH}{claimResult.transactionHash.slice(0, 10)}...{claimResult.transactionHash.slice(-8)}
               </div>
             </div>
           )}
