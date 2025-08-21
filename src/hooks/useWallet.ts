@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BrowserProvider } from 'ethers';
+import { TEXT } from '../config/text';
 
 export const useWallet = () => {
   const [account, setAccount] = useState<string | null>(null);
@@ -8,7 +9,7 @@ export const useWallet = () => {
 
   const connectWallet = useCallback(async () => {
     if (!window.ethereum) {
-      alert('请安装 MetaMask 钱包!');
+      alert(TEXT.INSTALL_METAMASK);
       return;
     }
 
@@ -22,14 +23,14 @@ export const useWallet = () => {
         const browserProvider = new BrowserProvider(window.ethereum);
         setProvider(browserProvider);
         setAccount(accounts[0]);
-        console.log('钱包连接成功:', accounts[0]);
+        console.log(TEXT.WALLET_CONNECTED, accounts[0]);
       }
     } catch (error: any) {
-      console.error('连接钱包失败:', error);
+      console.error('Connect wallet failed:', error);
       if (error.code === 4001) {
-        alert('用户拒绝了连接请求');
+        alert(TEXT.USER_REJECTED);
       } else {
-        alert('连接钱包失败，请重试');
+        alert(TEXT.CONNECT_FAILED);
       }
     } finally {
       setIsConnecting(false);
@@ -39,7 +40,7 @@ export const useWallet = () => {
   const disconnectWallet = useCallback(() => {
     setAccount(null);
     setProvider(null);
-    console.log('钱包已断开连接');
+    console.log(TEXT.WALLET_DISCONNECTED);
   }, []);
 
   const checkConnection = useCallback(async () => {
@@ -55,7 +56,7 @@ export const useWallet = () => {
           setAccount(accounts[0]);
         }
       } catch (error) {
-        console.error('检查连接状态失败:', error);
+        console.error('Check connection failed:', error);
       }
     }
   }, []);
@@ -65,7 +66,7 @@ export const useWallet = () => {
 
     if (window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
-        console.log('账户变化:', accounts);
+        console.log('Accounts changed:', accounts);
         if (accounts.length === 0) {
           disconnectWallet();
         } else {
@@ -76,7 +77,7 @@ export const useWallet = () => {
       };
 
       const handleChainChanged = (chainId: string) => {
-        console.log('网络变化:', chainId);
+        console.log('Chain changed:', chainId);
         window.location.reload();
       };
 

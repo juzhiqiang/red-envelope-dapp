@@ -1,4 +1,5 @@
 import React from 'react';
+import { TEXT } from '../config/text';
 
 interface ContractInfoProps {
   contractAddress: string;
@@ -15,10 +16,10 @@ const ContractInfo: React.FC<ContractInfoProps> = ({ contractAddress, totalEnvel
       margin: '20px',
       color: 'white'
     }}>
-      <h3 style={{ marginTop: 0, marginBottom: '15px' }}>{'📋 合约信息'}</h3>
+      <h3 style={{ marginTop: 0, marginBottom: '15px' }}>{TEXT.CONTRACT_INFO}</h3>
       <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
         <div style={{ marginBottom: '10px' }}>
-          <strong>{'合约地址:'}</strong>
+          <strong>{TEXT.CONTRACT_ADDRESS}</strong>
           <div style={{
             fontFamily: 'monospace',
             background: 'rgba(0, 0, 0, 0.2)',
@@ -31,7 +32,7 @@ const ContractInfo: React.FC<ContractInfoProps> = ({ contractAddress, totalEnvel
           </div>
         </div>
         <div>
-          <strong>{'已创建红包总数:'}</strong> {totalEnvelopes}
+          <strong>{TEXT.TOTAL_ENVELOPES}</strong> {totalEnvelopes}
         </div>
       </div>
     </div>

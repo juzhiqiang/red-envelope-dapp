@@ -1,4 +1,5 @@
 import React from 'react';
+import { TEXT } from '../config/text';
 
 interface WalletConnectionProps {
   account: string | null;
@@ -48,7 +49,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
               fontSize: '14px'
             }}
           >
-            {'断开连接'}
+            {TEXT.DISCONNECT}
           </button>
         </>
       ) : (
@@ -67,7 +68,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
             opacity: isConnecting ? 0.6 : 1
           }}
         >
-          {isConnecting ? '连接中...' : '连接 MetaMask'}
+          {isConnecting ? TEXT.CONNECTING : TEXT.CONNECT_WALLET}
         </button>
       )}
     </div>
