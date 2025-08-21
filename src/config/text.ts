@@ -1,1 +1,83 @@
-// 中文文本配置\nexport const TEXT = {\n  // 主标题\n  TITLE: '🧧 智能合约红包系统',\n  \n  // 钱包连接\n  CONNECT_WALLET: '连接 MetaMask',\n  CONNECTING: '连接中...',\n  DISCONNECT: '断开连接',\n  INSTALL_METAMASK: '请安装 MetaMask 钱包!',\n  USER_REJECTED: '用户拒绝了连接请求',\n  CONNECT_FAILED: '连接钱包失败，请重试',\n  WALLET_CONNECTED: '钱包连接成功',\n  WALLET_DISCONNECTED: '钱包已断开连接',\n  \n  // 合约信息\n  CONTRACT_INFO: '📋 合约信息',\n  CONTRACT_ADDRESS: '合约地址:',\n  TOTAL_ENVELOPES: '已创建红包总数:',\n  \n  // 创建红包\n  CREATE_ENVELOPE: '🧧 创建红包',\n  TOTAL_AMOUNT: '💰 红包总金额: ',\n  PACKET_COUNT: '📦 红包个数: ',\n  RANDOM_ALLOCATION: '🎲 随机分配金额到每个红包',\n  CREATING: '创建中...',\n  CREATE_BUTTON: '🚀 创建红包',\n  CREATE_SUCCESS: '红包创建成功！\\n交易哈希: ',\n  CREATE_FAILED: '创建红包失败，请重试',\n  INSUFFICIENT_FUNDS: '余额不足，需要至少 0.05 ETH + Gas费',\n  USER_CANCELLED: '用户取消了交易',\n  CONNECT_FIRST: '请先连接 MetaMask 钱包',\n  \n  // 查询红包\n  QUERY_ENVELOPE: '🔍 查询红包',\n  ENTER_ID: '输入红包ID',\n  QUERY_BUTTON: '查询',\n  ENVELOPE_INFO: '📦 红包信息',\n  ENVELOPE_ID: '红包ID:',\n  CREATOR: '创建者:',\n  REMAINING_AMOUNT: '剩余金额:',\n  TOTAL_PACKETS: '总红包数:',\n  REMAINING_PACKETS: '剩余红包数:',\n  STATUS: '状态:',\n  ACTIVE: ' 🟢 活跃',\n  ENDED: ' 🔴 已结束',\n  CREATED_TIME: '创建时间:',\n  CLAIMED_COUNT: '已领取人数:',\n  CLAIM_RECORDS: '领取记录:',\n  \n  // 抢红包\n  CLAIM_ENVELOPE: '🎉 抢红包',\n  CLAIMING: '抢红包中...',\n  ALREADY_CLAIMED: '✅ 您已经领取过这个红包了',\n  CANNOT_CLAIM_OWN: '❌ 不能抢自己的红包',\n  ENVELOPE_ENDED: '❌ 红包已结束',\n  FULLY_CLAIMED: '❌ 红包已被抢完',\n  CANNOT_CLAIM: '❌ 无法抢取',\n  CLAIM_SUCCESS: '🎊 恭喜！抢红包成功！',\n  TRANSACTION_HASH: '交易哈希: ',\n  \n  // 错误信息\n  QUERY_FAILED: '查询红包失败，请检查红包ID是否正确',\n  INVALID_ID: '请输入有效的红包ID',\n  ALREADY_CLAIMED_ERROR: '您已经抢过这个红包了！',\n  CREATOR_CANNOT_CLAIM: '创建者不能抢自己的红包！',\n  NO_PACKETS: '红包已被抢完！',\n  CLAIM_FAILED: '抢红包失败，请重试',\n  \n  // 欢迎页面\n  WELCOME_TITLE: '欢迎使用智能合约红包系统',\n  WELCOME_DESC1: '基于以太坊智能合约的去中心化红包系统',\n  WELCOME_DESC2: '支持创建红包、随机分配金额、抢红包等功能',\n  FEATURE_1: '🎯 每个红包包含 6 个随机金额的子包',\n  FEATURE_2: '💰 固定总金额 0.05 ETH',\n  FEATURE_3: '🎲 完全随机分配，公平公正',\n  FEATURE_4: '🔒 智能合约保证安全性',\n  CONNECT_PROMPT: '请先连接您的 MetaMask 钱包开始使用',\n  \n  // 页脚\n  FOOTER_1: '🚀 Red Envelope DApp - 基于区块链的智能红包系统',\n  FOOTER_2: '⚠️ 仅供学习和测试使用，请在测试网络中进行测试'\n};"
+// 中文文本配置
+export const TEXT = {
+  // 主标题
+  TITLE: '🧧 智能合约红包系统',
+  
+  // 钱包连接
+  CONNECT_WALLET: '连接 MetaMask',
+  CONNECTING: '连接中...',
+  DISCONNECT: '断开连接',
+  INSTALL_METAMASK: '请安装 MetaMask 钱包!',
+  USER_REJECTED: '用户拒绝了连接请求',
+  CONNECT_FAILED: '连接钱包失败，请重试',
+  WALLET_CONNECTED: '钱包连接成功',
+  WALLET_DISCONNECTED: '钱包已断开连接',
+  
+  // 合约信息
+  CONTRACT_INFO: '📋 合约信息',
+  CONTRACT_ADDRESS: '合约地址:',
+  TOTAL_ENVELOPES: '已创建红包总数:',
+  
+  // 创建红包
+  CREATE_ENVELOPE: '🧧 创建红包',
+  TOTAL_AMOUNT: '💰 红包总金额: ',
+  PACKET_COUNT: '📦 红包个数: ',
+  RANDOM_ALLOCATION: '🎲 随机分配金额到每个红包',
+  CREATING: '创建中...',
+  CREATE_BUTTON: '🚀 创建红包',
+  CREATE_SUCCESS: '红包创建成功！\n交易哈希: ',
+  CREATE_FAILED: '创建红包失败，请重试',
+  INSUFFICIENT_FUNDS: '余额不足，需要至少 0.05 ETH + Gas费',
+  USER_CANCELLED: '用户取消了交易',
+  CONNECT_FIRST: '请先连接 MetaMask 钱包',
+  
+  // 查询红包
+  QUERY_ENVELOPE: '🔍 查询红包',
+  ENTER_ID: '输入红包ID',
+  QUERY_BUTTON: '查询',
+  ENVELOPE_INFO: '📦 红包信息',
+  ENVELOPE_ID: '红包ID:',
+  CREATOR: '创建者:',
+  REMAINING_AMOUNT: '剩余金额:',
+  TOTAL_PACKETS: '总红包数:',
+  REMAINING_PACKETS: '剩余红包数:',
+  STATUS: '状态:',
+  ACTIVE: ' 🟢 活跃',
+  ENDED: ' 🔴 已结束',
+  CREATED_TIME: '创建时间:',
+  CLAIMED_COUNT: '已领取人数:',
+  CLAIM_RECORDS: '领取记录:',
+  
+  // 抢红包
+  CLAIM_ENVELOPE: '🎉 抢红包',
+  CLAIMING: '抢红包中...',
+  ALREADY_CLAIMED: '✅ 您已经领取过这个红包了',
+  CANNOT_CLAIM_OWN: '❌ 不能抢自己的红包',
+  ENVELOPE_ENDED: '❌ 红包已结束',
+  FULLY_CLAIMED: '❌ 红包已被抢完',
+  CANNOT_CLAIM: '❌ 无法抢取',
+  CLAIM_SUCCESS: '🎊 恭喜！抢红包成功！',
+  TRANSACTION_HASH: '交易哈希: ',
+  
+  // 错误信息
+  QUERY_FAILED: '查询红包失败，请检查红包ID是否正确',
+  INVALID_ID: '请输入有效的红包ID',
+  ALREADY_CLAIMED_ERROR: '您已经抢过这个红包了！',
+  CREATOR_CANNOT_CLAIM: '创建者不能抢自己的红包！',
+  NO_PACKETS: '红包已被抢完！',
+  CLAIM_FAILED: '抢红包失败，请重试',
+  
+  // 欢迎页面
+  WELCOME_TITLE: '欢迎使用智能合约红包系统',
+  WELCOME_DESC1: '基于以太坊智能合约的去中心化红包系统',
+  WELCOME_DESC2: '支持创建红包、随机分配金额、抢红包等功能',
+  FEATURE_1: '🎯 每个红包包含 6 个随机金额的子包',
+  FEATURE_2: '💰 固定总金额 0.05 ETH',
+  FEATURE_3: '🎲 完全随机分配，公平公正',
+  FEATURE_4: '🔒 智能合约保证安全性',
+  CONNECT_PROMPT: '请先连接您的 MetaMask 钱包开始使用',
+  
+  // 页脚
+  FOOTER_1: '🚀 Red Envelope DApp - 基于区块链的智能红包系统',
+  FOOTER_2: '⚠️ 仅供学习和测试使用，请在测试网络中进行测试'
+};
