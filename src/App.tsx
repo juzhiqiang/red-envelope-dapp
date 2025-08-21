@@ -8,6 +8,10 @@ import { useWallet } from './hooks/useWallet';
 import { useContract } from './hooks/useContract';
 import { TEXT } from './config/text';
 
+// 调试：检查TEXT对象是否正确导入
+console.log('TEXT object:', TEXT);
+console.log('TEXT.TITLE:', TEXT.TITLE);
+
 const App: React.FC = () => {
   const { account, provider, isConnecting, connectWallet, disconnectWallet } = useWallet();
   const {
@@ -42,19 +46,19 @@ const App: React.FC = () => {
     try {
       const txHash = await createEnvelope();
       if (txHash) {
-        alert(TEXT.CREATE_SUCCESS + txHash);
+        alert((TEXT?.CREATE_SUCCESS || '红包创建成功！\n交易哈希: ') + txHash);
         setLastUpdateTime(Date.now());
       }
     } catch (error: any) {
       console.error('Create envelope failed:', error);
-      let errorMessage = TEXT.CREATE_FAILED;
+      let errorMessage = TEXT?.CREATE_FAILED || '创建红包失败，请重试';
 
       if (error.message && error.message.includes('insufficient funds')) {
-        errorMessage = TEXT.INSUFFICIENT_FUNDS;
+        errorMessage = TEXT?.INSUFFICIENT_FUNDS || '余额不足';
       } else if (error.message && error.message.includes('user rejected')) {
-        errorMessage = TEXT.USER_CANCELLED;
+        errorMessage = TEXT?.USER_CANCELLED || '用户取消了交易';
       } else if (error.message && error.message.includes('connect wallet')) {
-        errorMessage = TEXT.CONNECT_FIRST;
+        errorMessage = TEXT?.CONNECT_FIRST || '请先连接钱包';
       }
 
       alert(errorMessage);
@@ -145,7 +149,7 @@ const App: React.FC = () => {
       <div style={headerStyle}>
         <div style={headerContainerStyle}>
           <h1 style={titleStyle}>
-            {TEXT.TITLE}
+            {TEXT?.TITLE || '🧧 智能合约红包系统'}
           </h1>
           <WalletConnection
             account={account}
@@ -183,31 +187,33 @@ const App: React.FC = () => {
           <div style={welcomeContainerStyle}>
             <div style={welcomeCardStyle} className="fade-in">
               <h2 style={{ fontSize: '48px', margin: '0 0 20px 0' }}>🧧</h2>
-              <h2 style={{ marginBottom: '20px' }}>{TEXT.WELCOME_TITLE}</h2>
+              <h2 style={{ marginBottom: '20px' }}>
+                {TEXT?.WELCOME_TITLE || '欢迎使用智能合约红包系统'}
+              </h2>
               <p style={{ 
                 fontSize: '18px', 
                 lineHeight: '1.6', 
                 marginBottom: '30px' 
               }}>
-                {TEXT.WELCOME_DESC1}
+                {TEXT?.WELCOME_DESC1 || '基于以太坊智能合约的去中心化红包系统'}
                 <br />
-                {TEXT.WELCOME_DESC2}
+                {TEXT?.WELCOME_DESC2 || '支持创建红包、随机分配金额、抢红包等功能'}
               </p>
               <div style={{ 
                 fontSize: '16px', 
                 color: '#ddd', 
                 marginBottom: '30px' 
               }}>
-                {TEXT.FEATURE_1}
+                {TEXT?.FEATURE_1 || '🎯 每个红包包含 6 个随机金额的子包'}
                 <br />
-                {TEXT.FEATURE_2}
+                {TEXT?.FEATURE_2 || '💰 固定总金额 0.05 ETH'}
                 <br />
-                {TEXT.FEATURE_3}
+                {TEXT?.FEATURE_3 || '🎲 完全随机分配，公平公正'}
                 <br />
-                {TEXT.FEATURE_4}
+                {TEXT?.FEATURE_4 || '🔒 智能合约保证安全性'}
               </div>
               <p style={{ fontSize: '16px', color: '#f39c12' }}>
-                {TEXT.CONNECT_PROMPT}
+                {TEXT?.CONNECT_PROMPT || '请先连接您的 MetaMask 钱包开始使用'}
               </p>
             </div>
           </div>
@@ -215,8 +221,8 @@ const App: React.FC = () => {
       </div>
 
       <div style={footerStyle}>
-        <p>{TEXT.FOOTER_1}</p>
-        <p>{TEXT.FOOTER_2}</p>
+        <p>{TEXT?.FOOTER_1 || '🚀 Red Envelope DApp - 基于区块链的智能红包系统'}</p>
+        <p>{TEXT?.FOOTER_2 || '⚠️ 仅供学习和测试使用，请在测试网络中进行测试'}</p>
       </div>
     </div>
   );
