@@ -30,11 +30,13 @@ const EnvelopeCreator: React.FC<EnvelopeCreatorProps> = ({ onCreateEnvelope, loa
       textAlign: 'center',
       color: 'white'
     }}>
-      <h3 style={{ marginTop: 0, marginBottom: '20px' }}>{TEXT.CREATE_ENVELOPE}</h3>
+      <h3 style={{ marginTop: 0, marginBottom: '20px' }}>
+        {TEXT?.CREATE_ENVELOPE || '🧧 创建红包'}
+      </h3>
       <div style={{ marginBottom: '20px', fontSize: '16px', lineHeight: '1.6' }}>
-        <p>{TEXT.TOTAL_AMOUNT}<strong>0.05 ETH</strong></p>
-        <p>{TEXT.PACKET_COUNT}<strong>6 个</strong></p>
-        <p>{TEXT.RANDOM_ALLOCATION}</p>
+        <p>{TEXT?.TOTAL_AMOUNT || '💰 红包总金额: '}<strong>0.05 ETH</strong></p>
+        <p>{TEXT?.PACKET_COUNT || '📦 红包个数: '}<strong>6 个</strong></p>
+        <p>{TEXT?.RANDOM_ALLOCATION || '🎲 随机分配金额到每个红包'}</p>
       </div>
       <button
         onClick={handleCreate}
@@ -52,7 +54,7 @@ const EnvelopeCreator: React.FC<EnvelopeCreatorProps> = ({ onCreateEnvelope, loa
           opacity: (loading || creating) ? 0.6 : 1
         }}
       >
-        {creating ? TEXT.CREATING : TEXT.CREATE_BUTTON}
+        {creating ? (TEXT?.CREATING || '创建中...') : (TEXT?.CREATE_BUTTON || '🚀 创建红包')}
       </button>
     </div>
   );
