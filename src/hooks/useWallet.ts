@@ -8,7 +8,7 @@ export const useWallet = () => {
 
   const connectWallet = useCallback(async () => {
     if (!window.ethereum) {
-      alert('Please install MetaMask wallet!');
+      alert('请安装 MetaMask 钱包!');
       return;
     }
 
@@ -22,14 +22,14 @@ export const useWallet = () => {
         const browserProvider = new BrowserProvider(window.ethereum);
         setProvider(browserProvider);
         setAccount(accounts[0]);
-        console.log('Wallet connected successfully:', accounts[0]);
+        console.log('钱包连接成功:', accounts[0]);
       }
     } catch (error: any) {
-      console.error('Failed to connect wallet:', error);
+      console.error('连接钱包失败:', error);
       if (error.code === 4001) {
-        alert('User rejected the connection request');
+        alert('用户拒绝了连接请求');
       } else {
-        alert('Failed to connect wallet, please try again');
+        alert('连接钱包失败，请重试');
       }
     } finally {
       setIsConnecting(false);
@@ -39,7 +39,7 @@ export const useWallet = () => {
   const disconnectWallet = useCallback(() => {
     setAccount(null);
     setProvider(null);
-    console.log('Wallet disconnected');
+    console.log('钱包已断开连接');
   }, []);
 
   const checkConnection = useCallback(async () => {
@@ -55,7 +55,7 @@ export const useWallet = () => {
           setAccount(accounts[0]);
         }
       } catch (error) {
-        console.error('Failed to check connection status:', error);
+        console.error('检查连接状态失败:', error);
       }
     }
   }, []);
@@ -65,7 +65,7 @@ export const useWallet = () => {
 
     if (window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
-        console.log('Accounts changed:', accounts);
+        console.log('账户变化:', accounts);
         if (accounts.length === 0) {
           disconnectWallet();
         } else {
@@ -76,7 +76,7 @@ export const useWallet = () => {
       };
 
       const handleChainChanged = (chainId: string) => {
-        console.log('Network changed:', chainId);
+        console.log('网络变化:', chainId);
         window.location.reload();
       };
 

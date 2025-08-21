@@ -15,10 +15,10 @@ const ContractInfo: React.FC<ContractInfoProps> = ({ contractAddress, totalEnvel
       margin: '20px',
       color: 'white'
     }}>
-      <h3 style={{ marginTop: 0, marginBottom: '15px' }}>📋 Contract Information</h3>
+      <h3 style={{ marginTop: 0, marginBottom: '15px' }}>{'📋 合约信息'}</h3>
       <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
         <div style={{ marginBottom: '10px' }}>
-          <strong>Contract Address:</strong>
+          <strong>{'合约地址:'}</strong>
           <div style={{
             fontFamily: 'monospace',
             background: 'rgba(0, 0, 0, 0.2)',
@@ -31,7 +31,7 @@ const ContractInfo: React.FC<ContractInfoProps> = ({ contractAddress, totalEnvel
           </div>
         </div>
         <div>
-          <strong>Total Envelopes Created:</strong> {totalEnvelopes}
+          <strong>{'已创建红包总数:'}</strong> {totalEnvelopes}
         </div>
       </div>
     </div>
