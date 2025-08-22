@@ -15,6 +15,7 @@ const App: React.FC = () => {
     hasUserClaimed,
     getUserClaimedAmount,
     getContractOwner,
+    getContractConstants,
     contractAddress
   } = useContract(provider);
 
@@ -23,6 +24,7 @@ const App: React.FC = () => {
   const [userClaimedAmount, setUserClaimedAmount] = useState("0");
   const [contractOwner, setContractOwner] = useState("");
   const [isOwner, setIsOwner] = useState(false);
+  const [contractConstants, setContractConstants] = useState({ totalAmount: "0.05", maxRecipients: 6 });
   const [lastUpdateTime, setLastUpdateTime] = useState<number>(Date.now());
 
   const fetchRedPacketInfo = useCallback(async () => {
@@ -33,6 +35,9 @@ const App: React.FC = () => {
         
         const owner = await getContractOwner();
         setContractOwner(owner);
+        
+        const constants = await getContractConstants();
+        setContractConstants(constants);
         
         if (account) {
           setIsOwner(account.toLowerCase() === owner.toLowerCase());
@@ -49,7 +54,7 @@ const App: React.FC = () => {
         console.error('Failed to fetch red packet info:', error);
       }
     }
-  }, [provider, getRedPacketInfo, hasUserClaimed, getUserClaimedAmount, getContractOwner, account]);
+  }, [provider, getRedPacketInfo, hasUserClaimed, getUserClaimedAmount, getContractOwner, getContractConstants, account]);
 
   useEffect(() => {
     fetchRedPacketInfo();
@@ -180,6 +185,44 @@ const App: React.FC = () => {
     background: '#2ecc71'
   };
 
+  const progressBarStyle = {
+    width: '100%',
+    height: '20px',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: '10px',
+    overflow: 'hidden',
+    marginTop: '15px'
+  };
+
+  const progressFillStyle = {
+    height: '100%',
+    background: 'linear-gradient(90deg, #2ecc71, #27ae60)',
+    borderRadius: '10px',
+    transition: 'width 0.3s ease'
+  };
+
+  const statsGridStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '15px',
+    marginTop: '20px'
+  };
+
+  const statItemStyle = {
+    background: 'rgba(255, 255, 255, 0.1)',
+    padding: '15px',
+    borderRadius: '10px',
+    textAlign: 'center' as const
+  };
+
+  // 计算进度百分比
+  const getProgressPercentage = () => {
+    if (!redPacketInfo || !contractConstants.totalAmount) return 0;
+    const distributed = parseFloat(redPacketInfo.distributedAmount || "0");
+    const total = parseFloat(contractConstants.totalAmount);
+    return total > 0 ? (distributed / total) * 100 : 0;
+  };
+
   return (
     <div style={{ 
       minHeight: '100vh', 
@@ -202,6 +245,53 @@ const App: React.FC = () => {
       <div style={mainContainerStyle}>
         {account ? (
           <>
+            {/* 红包总览信息 */}
+            <div style={cardStyle}>
+              <h3>📊 红包总览</h3>
+              <div style={statsGridStyle}>
+                <div style={statItemStyle}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f39c12' }}>
+                    {contractConstants.totalAmount} ETH
+                  </div>
+                  <div style={{ fontSize: '14px', opacity: 0.8 }}>初始总额度</div>
+                </div>
+                <div style={statItemStyle}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2ecc71' }}>
+                    {redPacketInfo?.distributedAmount || "0"} ETH
+                  </div>
+                  <div style={{ fontSize: '14px', opacity: 0.8 }}>已分配金额</div>
+                </div>
+                <div style={statItemStyle}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3498db' }}>
+                    {redPacketInfo?.remainingAmount || "0"} ETH
+                  </div>
+                  <div style={{ fontSize: '14px', opacity: 0.8 }}>剩余金额</div>
+                </div>
+                <div style={statItemStyle}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#e74c3c' }}>
+                    {redPacketInfo?.claimedCount || 0} / {contractConstants.maxRecipients}
+                  </div>
+                  <div style={{ fontSize: '14px', opacity: 0.8 }}>参与人数</div>
+                </div>
+              </div>
+              
+              {/* 进度条 */}
+              <div style={{ marginTop: '25px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span>分配进度</span>
+                  <span>{getProgressPercentage().toFixed(1)}%</span>
+                </div>
+                <div style={progressBarStyle}>
+                  <div 
+                    style={{
+                      ...progressFillStyle,
+                      width: `${getProgressPercentage()}%`
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* 合约信息 */}
             <div style={cardStyle}>
               <h3>📋 合约信息</h3>
@@ -214,10 +304,8 @@ const App: React.FC = () => {
               )}
               {redPacketInfo && (
                 <>
-                  <p><strong>剩余金额:</strong> {redPacketInfo.remainingAmount} ETH</p>
-                  <p><strong>已领取人数:</strong> {redPacketInfo.claimedCount} / {redPacketInfo.maxRecipients}</p>
                   <p><strong>合约余额:</strong> {redPacketInfo.contractBalance} ETH</p>
-                  <p><strong>状态:</strong> {redPacketInfo.isFinished ? '已完成' : '进行中'}</p>
+                  <p><strong>状态:</strong> {redPacketInfo.isFinished ? '✅ 已完成' : '🔄 进行中'}</p>
                 </>
               )}
             </div>
@@ -228,13 +316,16 @@ const App: React.FC = () => {
                 <div style={cardStyle}>
                   <h3>💰 充值红包</h3>
                   <p>作为合约拥有者，您可以向红包充值</p>
-                  <p><strong>充值金额:</strong> 0.05 ETH</p>
+                  <p><strong>充值金额:</strong> {contractConstants.totalAmount} ETH</p>
+                  <p style={{ fontSize: '14px', color: '#f39c12' }}>
+                    💡 提示：每次充值会增加红包池的总金额
+                  </p>
                   <button
                     onClick={handleDeposit}
                     disabled={loading}
                     style={loading ? disabledButtonStyle : buttonStyle}
                   >
-                    {loading ? '充值中...' : '💰 充值 0.05 ETH'}
+                    {loading ? '充值中...' : `💰 充值 ${contractConstants.totalAmount} ETH`}
                   </button>
                 </div>
               )}
@@ -257,6 +348,9 @@ const App: React.FC = () => {
                 ) : (
                   <div>
                     <p>点击下方按钮领取您的红包！</p>
+                    <p style={{ fontSize: '14px', color: '#f39c12' }}>
+                      💡 金额随机分配，最后一位用户将获得所有剩余金额
+                    </p>
                     <p><strong>注意:</strong> 每个地址只能领取一次</p>
                     <button
                       onClick={handleClaimRedPacket}
@@ -311,10 +405,11 @@ const App: React.FC = () => {
                 <p><strong>如何使用：</strong></p>
                 <ol style={{ paddingLeft: '20px' }}>
                   <li>连接您的 MetaMask 钱包</li>
-                  <li>如果您是合约拥有者，可以向红包充值 0.05 ETH</li>
+                  <li>如果您是合约拥有者，可以向红包充值 {contractConstants.totalAmount} ETH</li>
                   <li>任何人都可以点击"领取红包"按钮参与抢红包</li>
                   <li>每个地址只能领取一次，金额随机分配</li>
-                  <li>最多支持 6 个人领取</li>
+                  <li>最多支持 {contractConstants.maxRecipients} 个人领取</li>
+                  <li>最后一位用户将获得所有剩余金额</li>
                 </ol>
                 <p style={{ color: '#f39c12', marginTop: '15px' }}>
                   ⚠️ 注意：此为测试版本，请在测试网络中使用
@@ -345,7 +440,7 @@ const App: React.FC = () => {
               }}>
                 🎯 支持最多 6 个用户领取
                 <br />
-                💰 每次充值 0.05 ETH
+                💰 初始总额度 0.05 ETH
                 <br />
                 🎲 完全随机分配，公平公正
                 <br />
