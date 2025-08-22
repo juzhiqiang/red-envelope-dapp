@@ -3,7 +3,6 @@ import './App.css';
 import WalletConnection from './components/WalletConnection';
 import { useWallet } from './hooks/useWallet';
 import { useContract } from './hooks/useContract';
-import { TEXT } from './config/text';
 
 const App: React.FC = () => {
   const { account, provider, isConnecting, connectWallet, disconnectWallet } = useWallet();
