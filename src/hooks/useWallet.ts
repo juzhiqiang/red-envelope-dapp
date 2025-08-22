@@ -71,8 +71,11 @@ export const useWallet = () => {
           disconnectWallet();
         } else {
           setAccount(accounts[0]);
-          const newProvider = new BrowserProvider(window.ethereum);
-          setProvider(newProvider);
+          // 添加空值检查
+          if (window.ethereum) {
+            const newProvider = new BrowserProvider(window.ethereum);
+            setProvider(newProvider);
+          }
         }
       };
 
