@@ -21,7 +21,7 @@ const CONTRACT_ABI = [
   "event RedPacketFinished()"
 ];
 
-const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const CONTRACT_ADDRESS = "0xb04611abf453807AC6fDB3151d7839f6f4C53225";
 
 export interface RedPacketInfo {
   remainingAmount: string;
