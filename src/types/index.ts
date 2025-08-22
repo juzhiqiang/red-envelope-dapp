@@ -23,6 +23,8 @@ export interface RedPacketInfo {
   isFinished: boolean;
   claimers: string[];
   contractBalance: string;
+  totalAmount: string;        // 新增：初始总额度
+  distributedAmount: string;  // 新增：已分配金额
 }
 
 export interface UserClaimInfo {
@@ -35,4 +37,21 @@ export interface ContractInfo {
   owner: string;
   totalSupply: string;
   isActive: boolean;
+}
+
+// 新增：合约常量类型
+export interface ContractConstants {
+  totalAmount: string;
+  maxRecipients: number;
+}
+
+// 新增：红包统计信息类型
+export interface RedPacketStats {
+  initialAmount: string;
+  distributedAmount: string;
+  remainingAmount: string;
+  participantCount: number;
+  maxParticipants: number;
+  progressPercentage: number;
+  isCompleted: boolean;
 }
