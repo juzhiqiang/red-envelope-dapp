@@ -15,8 +15,24 @@ export interface ClaimResult {
   transactionHash: string;
 }
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
+// 新增：RedPacket 合约相关类型
+export interface RedPacketInfo {
+  remainingAmount: string;
+  claimedCount: number;
+  maxRecipients: number;
+  isFinished: boolean;
+  claimers: string[];
+  contractBalance: string;
+}
+
+export interface UserClaimInfo {
+  hasClaimed: boolean;
+  claimedAmount: string;
+}
+
+export interface ContractInfo {
+  address: string;
+  owner: string;
+  totalSupply: string;
+  isActive: boolean;
 }
