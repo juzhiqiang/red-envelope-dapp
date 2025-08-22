@@ -14,6 +14,8 @@ const CONTRACT_ABI = [
   "function remainingAmount() external view returns (uint256)",
   "function claimedCount() external view returns (uint256)",
   "function owner() external view returns (address)",
+  "function TOTAL_AMOUNT() external view returns (uint256)",
+  "function MAX_RECIPIENTS() external view returns (uint256)",
   "event RedPacketClaimed(address indexed claimer, uint256 amount)",
   "event RedPacketCreated(uint256 totalAmount, uint256 maxRecipients)",
   "event RedPacketFinished()"
@@ -28,6 +30,8 @@ export interface RedPacketInfo {
   isFinished: boolean;
   claimers: string[];
   contractBalance: string;
+  totalAmount: string;
+  distributedAmount: string;
 }
 
 export interface ClaimResult {
@@ -147,9 +151,18 @@ export const useContract = (provider: BrowserProvider | null) => {
       const contract = await getContract(false);
       if (!contract) return null;
       
+      // 获取基本红包信息
       const [remainingAmount, claimedCount, maxRecipients, isFinished] = await contract.getRedPacketInfo();
+      
+      // 获取其他信息
       const claimers = await contract.getClaimers();
       const contractBalance = await contract.getContractBalance();
+      
+      // 获取总额度常量
+      const totalAmount = await contract.TOTAL_AMOUNT();
+      
+      // 计算已分配金额
+      const distributedAmount = formatEther(BigInt(totalAmount.toString()) - BigInt(remainingAmount.toString()));
       
       return {
         remainingAmount: formatEther(remainingAmount),
@@ -157,7 +170,9 @@ export const useContract = (provider: BrowserProvider | null) => {
         maxRecipients: Number(maxRecipients),
         isFinished: isFinished,
         claimers: claimers,
-        contractBalance: formatEther(contractBalance)
+        contractBalance: formatEther(contractBalance),
+        totalAmount: formatEther(totalAmount),
+        distributedAmount: distributedAmount
       };
     } catch (error) {
       console.error('Failed to get red packet info:', error);
@@ -202,6 +217,24 @@ export const useContract = (provider: BrowserProvider | null) => {
     }
   };
 
+  const getContractConstants = async () => {
+    try {
+      const contract = await getContract(false);
+      if (!contract) return { totalAmount: "0.05", maxRecipients: 6 };
+      
+      const totalAmount = await contract.TOTAL_AMOUNT();
+      const maxRecipients = await contract.MAX_RECIPIENTS();
+      
+      return {
+        totalAmount: formatEther(totalAmount),
+        maxRecipients: Number(maxRecipients)
+      };
+    } catch (error) {
+      console.error('Failed to get contract constants:', error);
+      return { totalAmount: "0.05", maxRecipients: 6 };
+    }
+  };
+
   // 为了兼容原有接口，保留这些函数但调整实现
   const getEnvelope = async (): Promise<any> => {
     return await getRedPacketInfo();
@@ -221,6 +254,7 @@ export const useContract = (provider: BrowserProvider | null) => {
     hasUserClaimed,
     getUserClaimedAmount, // 新增：获取用户领取金额
     getContractOwner, // 新增：获取合约拥有者
+    getContractConstants, // 新增：获取合约常量
     getTotalEnvelopes,
     contractAddress: CONTRACT_ADDRESS
   };
