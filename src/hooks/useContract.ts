@@ -1,20 +1,39 @@
 import { useState, useCallback } from 'react';
 import { Contract, formatEther, parseEther } from 'ethers';
 import type { BrowserProvider } from 'ethers';
-import { EnvelopeInfo, ClaimResult } from '../types';
 
+// 更新ABI以匹配实际部署的RedPacket合约
 const CONTRACT_ABI = [
-  "function createEnvelope() external payable",
-  "function claimEnvelope(uint256 _envelopeId) external",
-  "function getEnvelope(uint256 _envelopeId) external view returns (uint256 id, address creator, uint256 totalAmount, uint256 remainingAmount, uint256 totalPackets, uint256 remainingPackets, address[] claimedBy, bool isActive, uint256 createdAt)",
-  "function hasUserClaimed(uint256 _envelopeId, address _user) external view returns (bool)",
-  "function getTotalEnvelopes() external view returns (uint256)",
-  "function nextEnvelopeId() external view returns (uint256)",
-  "event EnvelopeCreated(uint256 indexed envelopeId, address indexed creator, uint256 totalAmount, uint256 packets)",
-  "event EnvelopeClaimed(uint256 indexed envelopeId, address indexed claimer, uint256 amount)"
+  "function claimRedPacket() external",
+  "function getClaimers() external view returns (address[])",
+  "function getRedPacketInfo() external view returns (uint256 _remainingAmount, uint256 _claimedCount, uint256 _maxRecipients, bool _isFinished)",
+  "function hasClaimed(address) external view returns (bool)",
+  "function claimedAmount(address) external view returns (uint256)",
+  "function deposit() external payable",
+  "function getContractBalance() external view returns (uint256)",
+  "function remainingAmount() external view returns (uint256)",
+  "function claimedCount() external view returns (uint256)",
+  "function owner() external view returns (address)",
+  "event RedPacketClaimed(address indexed claimer, uint256 amount)",
+  "event RedPacketCreated(uint256 totalAmount, uint256 maxRecipients)",
+  "event RedPacketFinished()"
 ];
 
 const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
+export interface RedPacketInfo {
+  remainingAmount: string;
+  claimedCount: number;
+  maxRecipients: number;
+  isFinished: boolean;
+  claimers: string[];
+  contractBalance: string;
+}
+
+export interface ClaimResult {
+  amount: string;
+  transactionHash: string;
+}
 
 export const useContract = (provider: BrowserProvider | null) => {
   const [loading, setLoading] = useState(false);
@@ -34,6 +53,7 @@ export const useContract = (provider: BrowserProvider | null) => {
     }
   }, [provider]);
 
+  // 这个函数现在用于向合约充值，因为RedPacket合约需要先充值
   const createEnvelope = async (): Promise<string | null> => {
     if (!provider) {
       throw new Error('Please connect wallet first');
@@ -46,14 +66,23 @@ export const useContract = (provider: BrowserProvider | null) => {
         throw new Error('Unable to get contract instance');
       }
       
-      const tx = await contract.createEnvelope({
+      // 检查是否为合约owner
+      const signer = await provider.getSigner();
+      const userAddress = await signer.getAddress();
+      const owner = await contract.owner();
+      
+      if (userAddress.toLowerCase() !== owner.toLowerCase()) {
+        throw new Error('Only contract owner can deposit funds');
+      }
+      
+      const tx = await contract.deposit({
         value: parseEther("0.05")
       });
       
       const receipt = await tx.wait();
       return receipt?.hash || null;
     } catch (error: any) {
-      console.error('Failed to create envelope:', error);
+      console.error('Failed to deposit to contract:', error);
       if (error.code === 'ACTION_REJECTED') {
         throw new Error('User cancelled the transaction');
       } else if (error.code === 'INSUFFICIENT_FUNDS') {
@@ -65,7 +94,7 @@ export const useContract = (provider: BrowserProvider | null) => {
     }
   };
 
-  const claimEnvelope = async (envelopeId: number): Promise<ClaimResult | null> => {
+  const claimEnvelope = async (): Promise<ClaimResult | null> => {
     if (!provider) {
       throw new Error('Please connect wallet first');
     }
@@ -77,7 +106,7 @@ export const useContract = (provider: BrowserProvider | null) => {
         throw new Error('Unable to get contract instance');
       }
       
-      const tx = await contract.claimEnvelope(envelopeId);
+      const tx = await contract.claimRedPacket();
       const receipt = await tx.wait();
       
       let claimedAmount = "0";
@@ -88,7 +117,7 @@ export const useContract = (provider: BrowserProvider | null) => {
               topics: log.topics,
               data: log.data
             });
-            if (parsed?.name === 'EnvelopeClaimed') {
+            if (parsed?.name === 'RedPacketClaimed') {
               claimedAmount = formatEther(parsed.args.amount || 0);
               break;
             }
@@ -103,7 +132,7 @@ export const useContract = (provider: BrowserProvider | null) => {
         transactionHash: receipt?.hash || ''
       };
     } catch (error: any) {
-      console.error('Failed to claim envelope:', error);
+      console.error('Failed to claim red packet:', error);
       if (error.code === 'ACTION_REJECTED') {
         throw new Error('User cancelled the transaction');
       }
@@ -113,60 +142,85 @@ export const useContract = (provider: BrowserProvider | null) => {
     }
   };
 
-  const getEnvelope = async (envelopeId: number): Promise<EnvelopeInfo | null> => {
+  const getRedPacketInfo = async (): Promise<RedPacketInfo | null> => {
     try {
       const contract = await getContract(false);
       if (!contract) return null;
       
-      const result = await contract.getEnvelope(envelopeId);
+      const [remainingAmount, claimedCount, maxRecipients, isFinished] = await contract.getRedPacketInfo();
+      const claimers = await contract.getClaimers();
+      const contractBalance = await contract.getContractBalance();
+      
       return {
-        id: Number(result.id),
-        creator: result.creator,
-        totalAmount: formatEther(result.totalAmount),
-        remainingAmount: formatEther(result.remainingAmount),
-        totalPackets: Number(result.totalPackets),
-        remainingPackets: Number(result.remainingPackets),
-        claimedBy: result.claimedBy,
-        isActive: result.isActive,
-        createdAt: Number(result.createdAt)
+        remainingAmount: formatEther(remainingAmount),
+        claimedCount: Number(claimedCount),
+        maxRecipients: Number(maxRecipients),
+        isFinished: isFinished,
+        claimers: claimers,
+        contractBalance: formatEther(contractBalance)
       };
     } catch (error) {
-      console.error('Failed to get envelope info:', error);
+      console.error('Failed to get red packet info:', error);
       return null;
     }
   };
 
-  const hasUserClaimed = async (envelopeId: number, userAddress: string): Promise<boolean> => {
+  const hasUserClaimed = async (userAddress: string): Promise<boolean> => {
     try {
       const contract = await getContract(false);
       if (!contract) return false;
       
-      return await contract.hasUserClaimed(envelopeId, userAddress);
+      return await contract.hasClaimed(userAddress);
     } catch (error) {
       console.error('Failed to check if user claimed:', error);
       return false;
     }
   };
 
-  const getTotalEnvelopes = async (): Promise<number> => {
+  const getUserClaimedAmount = async (userAddress: string): Promise<string> => {
     try {
       const contract = await getContract(false);
-      if (!contract) return 0;
+      if (!contract) return "0";
       
-      const total = await contract.nextEnvelopeId();
-      return Number(total);
+      const amount = await contract.claimedAmount(userAddress);
+      return formatEther(amount);
     } catch (error) {
-      console.error('Failed to get total envelopes:', error);
-      return 0;
+      console.error('Failed to get user claimed amount:', error);
+      return "0";
     }
+  };
+
+  const getContractOwner = async (): Promise<string> => {
+    try {
+      const contract = await getContract(false);
+      if (!contract) return "";
+      
+      return await contract.owner();
+    } catch (error) {
+      console.error('Failed to get contract owner:', error);
+      return "";
+    }
+  };
+
+  // 为了兼容原有接口，保留这些函数但调整实现
+  const getEnvelope = async (): Promise<any> => {
+    return await getRedPacketInfo();
+  };
+
+  const getTotalEnvelopes = async (): Promise<number> => {
+    // RedPacket合约只有一个红包实例
+    return 1;
   };
 
   return {
     loading,
-    createEnvelope,
-    claimEnvelope,
-    getEnvelope,
+    createEnvelope, // 现在是充值功能
+    claimEnvelope, // 现在是领取红包功能
+    getEnvelope, // 获取红包信息
+    getRedPacketInfo, // 新增：获取红包详细信息
     hasUserClaimed,
+    getUserClaimedAmount, // 新增：获取用户领取金额
+    getContractOwner, // 新增：获取合约拥有者
     getTotalEnvelopes,
     contractAddress: CONTRACT_ADDRESS
   };
