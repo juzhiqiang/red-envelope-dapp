@@ -7,11 +7,13 @@ export const TEXT = {
   CONNECT_WALLET: '连接 MetaMask',
   CONNECTING: '连接中...',
   DISCONNECT: '断开连接',
+  SWITCH_ACCOUNT: '切换账户',
   INSTALL_METAMASK: '请安装 MetaMask 钱包!',
   USER_REJECTED: '用户拒绝了连接请求',
   CONNECT_FAILED: '连接钱包失败，请重试',
   WALLET_CONNECTED: '钱包连接成功',
   WALLET_DISCONNECTED: '钱包已断开连接',
+  LOADING_ENS: '加载 ENS 信息中...',
   
   // 合约信息
   CONTRACT_INFO: '📋 合约信息',
@@ -25,7 +27,7 @@ export const TEXT = {
   RANDOM_ALLOCATION: '🎲 随机分配金额到每个红包，其他用户可以抢取',
   CREATING: '创建中...',
   CREATE_BUTTON: '🚀 创建红包',
-  CREATE_SUCCESS: '红包创建成功！\n交易哈希: ',
+  CREATE_SUCCESS: '红包创建成功！\\n交易哈希: ',
   CREATE_FAILED: '创建红包失败，请重试',
   INSUFFICIENT_FUNDS: '余额不足，需要至少 0.05 ETH + Gas费',
   USER_CANCELLED: '用户取消了交易',
