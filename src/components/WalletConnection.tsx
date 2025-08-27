@@ -7,6 +7,7 @@ interface WalletConnectionProps {
   isConnecting: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
+  onAccountChange?: (account: string) => void; // 新增：账户变化回调
 }
 
 interface ENSInfo {
@@ -24,12 +25,14 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
   account,
   isConnecting,
   onConnect,
-  onDisconnect
+  onDisconnect,
+  onAccountChange
 }) => {
   const [ensInfo, setEnsInfo] = useState<ENSInfo>({ name: null, avatar: null });
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const [availableAccounts, setAvailableAccounts] = useState<string[]>([]);
   const [isLoadingEns, setIsLoadingEns] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   // 格式化地址显示
   const formatAddress = (address: string) => {
@@ -103,24 +106,69 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
     }
   }, []);
 
-  // 切换账户
+  // 切换账户 - 改进版本
   const switchAccount = async (selectedAccount: string) => {
     if (!window.ethereum || selectedAccount === account) {
       setShowWalletMenu(false);
       return;
     }
 
+    setIsSwitching(true);
     try {
-      await window.ethereum.request({
-        method: 'wallet_requestPermissions',
-        params: [{ eth_accounts: {} }]
-      });
-      
-      window.location.reload();
+      // 方法1: 尝试直接请求切换到指定账户
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumAccount',
+          params: [{ address: selectedAccount }]
+        });
+        
+        // 如果成功，通过回调通知父组件
+        if (onAccountChange) {
+          onAccountChange(selectedAccount);
+        }
+        
+        setShowWalletMenu(false);
+        setIsSwitching(false);
+        return;
+      } catch (switchError: any) {
+        // 如果方法不支持，尝试方法2
+        console.log('Direct switch not supported, trying alternative method');
+      }
+
+      // 方法2: 请求重新选择账户
+      try {
+        const accounts = await window.ethereum.request({
+          method: 'wallet_requestPermissions',
+          params: [{ eth_accounts: {} }]
+        });
+        
+        // 获取新的账户列表
+        const newAccounts = await window.ethereum.request({
+          method: 'eth_accounts'
+        });
+        
+        if (newAccounts && newAccounts.length > 0) {
+          const newAccount = newAccounts[0];
+          if (onAccountChange && newAccount !== account) {
+            onAccountChange(newAccount);
+          }
+        }
+        
+        setShowWalletMenu(false);
+      } catch (permissionError) {
+        console.error('Permission request failed:', permissionError);
+        
+        // 方法3: 提示用户手动切换
+        alert('请在 MetaMask 中手动切换到所需账户，然后刷新页面');
+      }
     } catch (error) {
       console.error('Error switching account:', error);
+      // 如果所有方法都失败，提供用户友好的提示
+      alert('账户切换失败。请在 MetaMask 中手动选择账户，然后刷新页面');
+    } finally {
+      setIsSwitching(false);
+      setShowWalletMenu(false);
     }
-    setShowWalletMenu(false);
   };
 
   // 处理 ENS 头像加载错误
@@ -158,6 +206,16 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
 
     const handleAccountsChanged = (accounts: string[]) => {
       setAvailableAccounts(accounts);
+      
+      // 如果当前账户不在新的账户列表中，或者账户列表为空
+      if (accounts.length === 0) {
+        onDisconnect();
+      } else if (account && !accounts.includes(account)) {
+        // 当前账户已经不可用，切换到第一个可用账户
+        if (onAccountChange) {
+          onAccountChange(accounts[0]);
+        }
+      }
     };
 
     window.ethereum.on('accountsChanged', handleAccountsChanged);
@@ -167,7 +225,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
       }
     };
-  }, []);
+  }, [account, onAccountChange, onDisconnect]);
 
   // 处理点击外部关闭菜单
   useEffect(() => {
@@ -244,7 +302,9 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
               borderRadius: '25px',
               cursor: 'pointer',
               border: '1px solid rgba(255, 255, 255, 0.2)',
-              backdropFilter: 'blur(10px)'
+              backdropFilter: 'blur(10px)',
+              opacity: isSwitching ? 0.7 : 1,
+              pointerEvents: isSwitching ? 'none' : 'auto'
             }}
           >
             {/* 头像 */}
@@ -275,20 +335,28 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
               )}
             </div>
 
-            {/* 下拉箭头 */}
-            <div style={{
-              marginLeft: '8px',
-              transform: showWalletMenu ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s ease',
-              color: 'rgba(255, 255, 255, 0.7)',
-              fontSize: '12px'
-            }}>
-              ▼
-            </div>
+            {/* 下拉箭头或切换中状态 */}
+            {isSwitching ? (
+              <div className="loading-spinner" style={{
+                width: '12px',
+                height: '12px',
+                marginLeft: '8px'
+              }} />
+            ) : (
+              <div style={{
+                marginLeft: '8px',
+                transform: showWalletMenu ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '12px'
+              }}>
+                ▼
+              </div>
+            )}
           </div>
 
           {/* 下拉菜单 */}
-          {showWalletMenu && (
+          {showWalletMenu && !isSwitching && (
             <div className="wallet-dropdown">
               {/* 当前账户信息 */}
               <div style={{
@@ -364,6 +432,19 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
                         </span>
                       </div>
                     ))}
+                </div>
+              )}
+
+              {/* 手动切换提示 */}
+              {availableAccounts.length > 1 && (
+                <div style={{
+                  padding: '8px 16px',
+                  fontSize: '11px',
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                  textAlign: 'center'
+                }}>
+                  💡 您也可以直接在 MetaMask 中切换账户
                 </div>
               )}
 
