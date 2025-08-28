@@ -67,7 +67,6 @@ const App: React.FC = () => {
   const fetchRedPacketInfo = useCallback(async () => {
     if (provider) {
       try {
-        console.log('📊 开始获取红包信息，当前账户:', account);
         
         const info = await getRedPacketInfo();
         setRedPacketInfo(info);
@@ -94,7 +93,6 @@ const App: React.FC = () => {
             setUserClaimedAmount("0");
           }
           
-          console.log('📊 红包信息更新完成，账户:', account, '是否为拥有者:', accountLower === ownerLower);
         }
       } catch (error) {
         console.error('Failed to fetch red packet info:', error);

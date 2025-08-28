@@ -1,6 +1,6 @@
 // src/hooks/useENS.ts
-import { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
+import { useState, useEffect } from "react";
+import { ethers } from "ethers";
 
 interface ENSData {
   name: string | null;
@@ -14,7 +14,7 @@ const useENS = (address: string | null): ENSData => {
     name: null,
     avatar: null,
     isLoading: false,
-    error: null
+    error: null,
   });
 
   useEffect(() => {
@@ -23,52 +23,42 @@ const useENS = (address: string | null): ENSData => {
         name: null,
         avatar: null,
         isLoading: false,
-        error: null
+        error: null,
       });
       return;
     }
 
     const fetchENSData = async () => {
-      setEnsData(prev => ({ ...prev, isLoading: true, error: null }));
-      
+      setEnsData((prev) => ({ ...prev, isLoading: true, error: null }));
+
       try {
         // 使用主网 provider 来查询 ENS
-        const provider = new ethers.JsonRpcProvider('https://eth-mainnet.alchemyapi.io/v2/demo');
-        
+        const provider = new ethers.JsonRpcProvider(
+          "https://eth-mainnet.g.alchemy.com/v2/4522c2c01dce4532a23dd57f9c816286"
+        );
+
         // 获取 ENS 名称
         const ensName = await provider.lookupAddress(address);
         let avatar = null;
-        
         if (ensName) {
-          try {
-            // 获取 ENS 头像
-            const resolver = await provider.getResolver(ensName);
-            if (resolver) {
-              avatar = await resolver.getText('avatar');
-              
-              // 处理 IPFS 链接
-              if (avatar && avatar.startsWith('ipfs://')) {
-                avatar = `https://ipfs.io/ipfs/${avatar.slice(7)}`;
-              }
-            }
-          } catch (avatarError) {
-            console.warn('Failed to fetch ENS avatar:', avatarError);
-          }
+          const resolver = await provider.getResolver(ensName);
+          const avatar = await resolver?.getText("avatar");
+          console.log("ENS 名:", ensName, "头像:", avatar);
         }
-        
+
         setEnsData({
           name: ensName,
           avatar,
           isLoading: false,
-          error: null
+          error: null,
         });
       } catch (error) {
-        console.error('Failed to fetch ENS data:', error);
+        console.error("Failed to fetch ENS data:", error);
         setEnsData({
           name: null,
           avatar: null,
           isLoading: false,
-          error: 'Failed to fetch ENS data'
+          error: "Failed to fetch ENS data",
         });
       }
     };
