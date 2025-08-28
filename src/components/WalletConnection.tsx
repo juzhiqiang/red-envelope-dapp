@@ -8,6 +8,7 @@ interface WalletConnectionProps {
   onConnect: () => void;
   onDisconnect: () => void;
   onAccountChange?: (account: string) => void; // 新增：账户变化回调
+  isDisconnecting?: boolean; // 新增：断开连接状态
 }
 
 interface ENSInfo {
@@ -26,7 +27,8 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
   isConnecting,
   onConnect,
   onDisconnect,
-  onAccountChange
+  onAccountChange,
+  isDisconnecting = false
 }) => {
   const [ensInfo, setEnsInfo] = useState<ENSInfo>({ name: null, avatar: null });
   const [showWalletMenu, setShowWalletMenu] = useState(false);
@@ -171,6 +173,12 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
     }
   };
 
+  // 处理断开连接
+  const handleDisconnect = async () => {
+    setShowWalletMenu(false);
+    await onDisconnect();
+  };
+
   // 处理 ENS 头像加载错误
   const handleAvatarError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     if (!account) return;
@@ -209,7 +217,8 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
       
       // 如果当前账户不在新的账户列表中，或者账户列表为空
       if (accounts.length === 0) {
-        onDisconnect();
+        // 账户被断开连接，关闭菜单
+        setShowWalletMenu(false);
       } else if (account && !accounts.includes(account)) {
         // 当前账户已经不可用，切换到第一个可用账户
         if (onAccountChange) {
@@ -225,7 +234,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
       }
     };
-  }, [account, onAccountChange, onDisconnect]);
+  }, [account, onAccountChange]);
 
   // 处理点击外部关闭菜单
   useEffect(() => {
@@ -292,7 +301,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
           {/* 已连接状态显示 */}
           <div
             className="wallet-menu-hover"
-            onClick={() => setShowWalletMenu(!showWalletMenu)}
+            onClick={() => !isDisconnecting && !isSwitching && setShowWalletMenu(!showWalletMenu)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -300,11 +309,11 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
               background: 'rgba(255, 255, 255, 0.1)',
               padding: '8px 16px',
               borderRadius: '25px',
-              cursor: 'pointer',
+              cursor: (isDisconnecting || isSwitching) ? 'not-allowed' : 'pointer',
               border: '1px solid rgba(255, 255, 255, 0.2)',
               backdropFilter: 'blur(10px)',
-              opacity: isSwitching ? 0.7 : 1,
-              pointerEvents: isSwitching ? 'none' : 'auto'
+              opacity: (isDisconnecting || isSwitching) ? 0.7 : 1,
+              pointerEvents: (isDisconnecting || isSwitching) ? 'none' : 'auto'
             }}
           >
             {/* 头像 */}
@@ -335,13 +344,27 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
               )}
             </div>
 
-            {/* 下拉箭头或切换中状态 */}
-            {isSwitching ? (
-              <div className="loading-spinner" style={{
-                width: '12px',
-                height: '12px',
-                marginLeft: '8px'
-              }} />
+            {/* 下拉箭头或状态指示 */}
+            {isDisconnecting ? (
+              <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div className="loading-spinner" style={{
+                  width: '12px',
+                  height: '12px'
+                }} />
+                <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '12px' }}>
+                  断开中...
+                </span>
+              </div>
+            ) : isSwitching ? (
+              <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div className="loading-spinner" style={{
+                  width: '12px',
+                  height: '12px'
+                }} />
+                <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '12px' }}>
+                  切换中...
+                </span>
+              </div>
             ) : (
               <div style={{
                 marginLeft: '8px',
@@ -356,7 +379,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
           </div>
 
           {/* 下拉菜单 */}
-          {showWalletMenu && !isSwitching && (
+          {showWalletMenu && !isDisconnecting && !isSwitching && (
             <div className="wallet-dropdown">
               {/* 当前账户信息 */}
               <div style={{
@@ -451,10 +474,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
               {/* 断开连接按钮 */}
               <div
                 className="disconnect-hover"
-                onClick={() => {
-                  onDisconnect();
-                  setShowWalletMenu(false);
-                }}
+                onClick={handleDisconnect}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
