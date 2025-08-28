@@ -118,13 +118,13 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
     
     try {
       // 使用 eth_accounts 而不是 eth_requestAccounts，避免触发权限请求
-      const accounts = await window.ethereum.request({
+      const accounts: string[] = await window.ethereum.request({
         method: 'eth_accounts'
       });
       setAvailableAccounts(accounts);
       
-      // 批量获取ENS信息，避免重复请求
-      const promises = accounts.map(async (acc) => {
+      // 批量获取ENS信息，避免重复请求 - 修复TypeScript类型错误
+      const promises = accounts.map(async (acc: string) => {
         if (acc !== account && !accountsInfo.has(acc)) {
           try {
             const info = await fetchAccountENSInfo(acc);
