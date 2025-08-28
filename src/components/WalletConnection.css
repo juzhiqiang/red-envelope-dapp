@@ -6,13 +6,24 @@
   100% { transform: rotate(360deg); }
 }
 
+/* 闪烁动画 - 支持 ENS 加载状态 */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 /* 钱包菜单悬停效果 */
 .wallet-menu-hover {
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .wallet-menu-hover:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-1px);
 }
 
 /* 断开连接按钮悬停效果 */
@@ -69,11 +80,12 @@
   gap: 12px;
   padding: 12px 16px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .account-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
+  transform: translateX(2px);
 }
 
 /* 头像样式 */
@@ -83,6 +95,12 @@
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.avatar:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.05);
 }
 
 .default-avatar {
@@ -96,6 +114,29 @@
   font-size: 14px;
   font-weight: bold;
   text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.default-avatar:hover {
+  transform: scale(1.05);
+}
+
+/* ENS 头像样式 */
+.ens-avatar {
+  transition: all 0.2s ease;
+}
+
+.ens-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+}
+
+.generated-avatar {
+  transition: all 0.2s ease;
+}
+
+.generated-avatar:hover {
+  transform: scale(1.05);
 }
 
 /* 加载状态 */
@@ -118,6 +159,49 @@
   animation: spin 1s linear infinite;
 }
 
+/* ENS 名称高亮 */
+.ens-name {
+  color: #00d4ff !important;
+  font-weight: 600 !important;
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
+}
+
+.ens-badge {
+  background: rgba(0, 212, 255, 0.2);
+  color: #00d4ff;
+  font-size: 8px;
+  padding: 1px 4px;
+  border-radius: 6px;
+  font-weight: bold;
+  margin-left: 4px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* 骨架屏样式 */
+.avatar-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 50%;
+}
+
+.name-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .wallet-dropdown {
@@ -132,5 +216,13 @@
   .connect-button {
     font-size: 14px;
     padding: 10px 20px;
+  }
+  
+  .account-item {
+    padding: 10px 12px;
+  }
+  
+  .wallet-menu-hover {
+    padding: 6px 12px !important;
   }
 }
