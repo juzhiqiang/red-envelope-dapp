@@ -1,7 +1,8 @@
 // src/components/AddressAvatar.tsx
 import React, { useState } from 'react';
 import useENS from '../hooks/useENS';
-import { generateGradientAvatar, formatAddress, isValidImageUrl } from '../utils/avatarGenerator';
+import { generateGradientAvatar, formatAddress } from '../utils/avatarGenerator';
+import './AddressAvatar.css';
 
 interface AddressAvatarProps {
   address: string;
@@ -45,11 +46,7 @@ const AddressAvatar: React.FC<AddressAvatarProps> = ({
             className="avatar-skeleton" 
             style={{ 
               width: size, 
-              height: size,
-              borderRadius: '50%',
-              background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 1.5s infinite'
+              height: size
             }}
           />
         ) : (
@@ -77,12 +74,7 @@ const AddressAvatar: React.FC<AddressAvatarProps> = ({
               className="name-skeleton"
               style={{
                 width: '80px',
-                height: '16px',
-                background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-                backgroundSize: '200% 100%',
-                borderRadius: '4px',
-                animation: 'shimmer 1.5s infinite',
-                marginTop: '8px'
+                height: '16px'
               }}
             />
           ) : (
@@ -95,65 +87,6 @@ const AddressAvatar: React.FC<AddressAvatarProps> = ({
           )}
         </div>
       )}
-      
-      <style jsx>{`
-        .address-avatar {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-        }
-        
-        .avatar-container {
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        
-        .avatar-image {
-          transition: all 0.2s ease;
-        }
-        
-        .avatar-image:hover {
-          transform: scale(1.05);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-        
-        .address-name {
-          text-align: center;
-          min-height: 20px;
-        }
-        
-        .name-text {
-          font-size: 14px;
-          font-weight: 500;
-          transition: color 0.2s ease;
-        }
-        
-        .ens-name {
-          color: #007bff;
-          font-weight: 600;
-        }
-        
-        .wallet-address {
-          color: #6c757d;
-          font-family: 'Courier New', monospace;
-        }
-        
-        .name-text:hover {
-          opacity: 0.8;
-        }
-        
-        @keyframes shimmer {
-          0% {
-            background-position: -200% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-      `}</style>
     </div>
   );
 };
