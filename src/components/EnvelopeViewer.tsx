@@ -3,6 +3,7 @@ import { EnvelopeInfo, ClaimResult } from '../types';
 import { TEXT } from '../config/text';
 import useENS from '../hooks/useENS';
 import { generateGradientAvatar, formatAddress } from '../utils/avatarGenerator';
+import './EnvelopeViewer.css';
 
 interface EnvelopeViewerProps {
   onQueryEnvelope: (id: number) => Promise<EnvelopeInfo | null>;
@@ -34,17 +35,7 @@ const ClaimedUserItem: React.FC<ClaimedUserItemProps> = ({
   const renderAvatar = () => {
     if (ensLoading) {
       return (
-        <div 
-          style={{ 
-            width: 20, 
-            height: 20,
-            borderRadius: '50%',
-            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 1.5s infinite',
-            marginRight: '8px'
-          }}
-        />
+        <div className="avatar-skeleton user-avatar" />
       );
     }
 
@@ -53,14 +44,7 @@ const ClaimedUserItem: React.FC<ClaimedUserItemProps> = ({
         <img
           src={ensAvatar}
           alt={ensName || 'Avatar'}
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: '50%',
-            objectFit: 'cover',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            marginRight: '8px'
-          }}
+          className="user-avatar"
           onError={onAvatarError}
         />
       );
@@ -70,13 +54,7 @@ const ClaimedUserItem: React.FC<ClaimedUserItemProps> = ({
       <img
         src={generateGradientAvatar(address)}
         alt="Avatar"
-        style={{
-          width: 20,
-          height: 20,
-          borderRadius: '50%',
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-          marginRight: '8px'
-        }}
+        className="user-avatar"
       />
     );
   };
@@ -84,16 +62,7 @@ const ClaimedUserItem: React.FC<ClaimedUserItemProps> = ({
   const getDisplayName = () => {
     if (ensLoading) {
       return (
-        <div 
-          style={{
-            width: '80px',
-            height: '12px',
-            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
-            backgroundSize: '200% 100%',
-            borderRadius: '4px',
-            animation: 'shimmer 1.5s infinite'
-          }}
-        />
+        <div className="name-skeleton user-name-skeleton" />
       );
     }
 
@@ -101,44 +70,26 @@ const ClaimedUserItem: React.FC<ClaimedUserItemProps> = ({
     const isENS = Boolean(ensName);
 
     return (
-      <span style={{ color: isENS ? '#00d4ff' : 'white', fontWeight: isENS ? '600' : 'normal' }}>
+      <span className={`user-name ${isENS ? 'ens' : ''}`}>
         {displayName}
-        {isCurrentUser && <span style={{ color: '#ffd700', marginLeft: '4px' }}>(你)</span>}
+        {isCurrentUser && <span className="current-user-text">(你)</span>}
       </span>
     );
   };
 
   return (
-    <div style={{
-      background: isCurrentUser ? 'rgba(255, 215, 0, 0.2)' : 'rgba(0, 0, 0, 0.2)',
-      border: isCurrentUser ? '1px solid rgba(255, 215, 0, 0.5)' : 'none',
-      padding: '8px 10px',
-      borderRadius: '8px',
-      marginBottom: '5px',
-      fontSize: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <span style={{ marginRight: '8px', fontWeight: 'bold' }}>{index + 1}.</span>
+    <div className={`claimed-user-item ${isCurrentUser ? 'current-user' : ''}`}>
+      <div className="user-info">
+        <span className="user-rank">{index + 1}.</span>
         {renderAvatar()}
         {getDisplayName()}
         {ensName && (
-          <div style={{ 
-            marginLeft: '6px', 
-            fontSize: '8px', 
-            background: 'rgba(0, 212, 255, 0.3)', 
-            color: '#00d4ff',
-            padding: '1px 4px',
-            borderRadius: '6px',
-            fontWeight: 'bold'
-          }}>
+          <div className="user-badge">
             ENS
           </div>
         )}
       </div>
-      <span style={{ color: '#2ed573', fontWeight: 'bold' }}>✓ 已抢到</span>
+      <span className="claim-status">✓ 已抢到</span>
     </div>
   );
 };
@@ -232,15 +183,8 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
       if (creatorEnsLoading) {
         return (
           <div 
-            style={{ 
-              width: size, 
-              height: size,
-              borderRadius: '50%',
-              background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 1.5s infinite',
-              marginRight: '8px'
-            }}
+            className="avatar-skeleton creator-avatar"
+            style={{ width: size, height: size }}
           />
         );
       }
@@ -250,14 +194,8 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
           <img
             src={creatorEnsAvatar}
             alt={creatorEnsName || 'Creator Avatar'}
-            style={{
-              width: size,
-              height: size,
-              borderRadius: '50%',
-              objectFit: 'cover',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              marginRight: '8px'
-            }}
+            className="creator-avatar"
+            style={{ width: size, height: size }}
             onError={() => handleAvatarError(address)}
           />
         );
@@ -269,13 +207,8 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
       <img
         src={generateGradientAvatar(address)}
         alt="Avatar"
-        style={{
-          width: size,
-          height: size,
-          borderRadius: '50%',
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-          marginRight: '8px'
-        }}
+        className="creator-avatar"
+        style={{ width: size, height: size }}
       />
     );
   };
@@ -286,16 +219,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
     if (address === envelopeInfo?.creator) {
       if (creatorEnsLoading) {
         return (
-          <div 
-            style={{
-              width: '100px',
-              height: '16px',
-              background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
-              backgroundSize: '200% 100%',
-              borderRadius: '4px',
-              animation: 'shimmer 1.5s infinite'
-            }}
-          />
+          <div className="name-skeleton creator-name-skeleton" />
         );
       }
 
@@ -303,7 +227,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
       const isENS = Boolean(creatorEnsName);
 
       return (
-        <span style={{ color: isENS ? '#00d4ff' : 'white', fontWeight: isENS ? '600' : 'normal' }}>
+        <span className={`creator-name ${isENS ? 'ens' : ''}`}>
           {displayName}
         </span>
       );
@@ -345,154 +269,100 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
   };
 
   return (
-    <div style={{
-      background: 'rgba(255, 255, 255, 0.1)',
-      backdropFilter: 'blur(10px)',
-      borderRadius: '15px',
-      padding: '30px',
-      margin: '20px',
-      color: 'white'
-    }}>
-      <h3 style={{ marginTop: 0, marginBottom: '20px' }}>
+    <div className="envelope-viewer">
+      <h3>
         {TEXT?.QUERY_ENVELOPE || '🔍 查询红包'}
       </h3>
       
-      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+      <div className="query-section">
         <input
           type="number"
           placeholder={TEXT?.ENTER_ID || '输入红包ID'}
           value={envelopeId}
           onChange={(e) => setEnvelopeId(e.target.value)}
-          style={{
-            padding: '10px 15px',
-            borderRadius: '10px',
-            border: 'none',
-            background: 'rgba(255, 255, 255, 0.2)',
-            color: 'white',
-            fontSize: '16px',
-            flex: 1
-          }}
+          className="query-input"
         />
         <button
           onClick={handleQuery}
           disabled={loading || !envelopeId || !userAddress}
-          style={{
-            background: '#3742fa',
-            color: 'white',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '10px',
-            cursor: (!loading && envelopeId && userAddress) ? 'pointer' : 'not-allowed',
-            fontSize: '16px',
-            opacity: (!loading && envelopeId && userAddress) ? 1 : 0.6
-          }}
+          className="query-button"
         >
           {TEXT?.QUERY_BUTTON || '查询'}
         </button>
       </div>
 
       {envelopeInfo && (
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '10px',
-          padding: '20px',
-          marginTop: '20px'
-        }}>
-          <h4 style={{ marginTop: 0, marginBottom: '15px' }}>
+        <div className="envelope-info-card">
+          <h4>
             {TEXT?.ENVELOPE_INFO || '📦 红包信息'}
           </h4>
           
           {/* 红包进度条 */}
-          <div style={{ marginBottom: '15px' }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              marginBottom: '5px' 
-            }}>
-              <span style={{ fontSize: '14px' }}>抢取进度</span>
-              <span style={{ fontSize: '14px' }}>
+          <div className="progress-section">
+            <div className="progress-header">
+              <span>抢取进度</span>
+              <span>
                 {envelopeInfo.totalPackets - envelopeInfo.remainingPackets}/{envelopeInfo.totalPackets}
               </span>
             </div>
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              borderRadius: '10px',
-              height: '8px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                background: envelopeInfo.isActive ? '#2ed573' : '#ff4757',
-                height: '100%',
-                width: `${((envelopeInfo.totalPackets - envelopeInfo.remainingPackets) / envelopeInfo.totalPackets) * 100}%`,
-                transition: 'width 0.3s ease'
-              }} />
+            <div className="progress-bar">
+              <div 
+                className={`progress-fill ${envelopeInfo.isActive ? 'active' : 'inactive'}`}
+                style={{ 
+                  width: `${((envelopeInfo.totalPackets - envelopeInfo.remainingPackets) / envelopeInfo.totalPackets) * 100}%`
+                }}
+              />
             </div>
           </div>
 
-          <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-            <div style={{ marginBottom: '8px' }}>
+          <div className="info-details">
+            <div className="info-item">
               <strong>{TEXT?.ENVELOPE_ID || '红包ID:'}</strong> {envelopeInfo.id}
             </div>
             
             {/* 创建者信息 - 集成 ENS 显示 */}
-            <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
-              <strong style={{ marginRight: '8px' }}>{TEXT?.CREATOR || '创建者:'}</strong>
+            <div className="creator-info">
+              <strong>{TEXT?.CREATOR || '创建者:'}</strong>
               {renderAddressAvatar(envelopeInfo.creator, 20)}
               {renderAddressName(envelopeInfo.creator)}
               {creatorEnsName && (
-                <div style={{ 
-                  marginLeft: '8px', 
-                  fontSize: '10px', 
-                  background: 'rgba(0, 212, 255, 0.2)', 
-                  color: '#00d4ff',
-                  padding: '2px 6px',
-                  borderRadius: '8px',
-                  fontWeight: 'bold'
-                }}>
+                <div className="ens-badge">
                   ENS
                 </div>
               )}
             </div>
             
-            <div style={{ marginBottom: '8px' }}>
+            <div className="info-item">
               <strong>{(TEXT?.TOTAL_AMOUNT || '红包总金额:').replace(':', '')}</strong> {envelopeInfo.totalAmount} ETH
             </div>
-            <div style={{ marginBottom: '8px' }}>
+            <div className="info-item">
               <strong>{TEXT?.REMAINING_AMOUNT || '剩余金额:'}</strong> {envelopeInfo.remainingAmount} ETH
             </div>
-            <div style={{ marginBottom: '8px' }}>
+            <div className="info-item">
               <strong>{TEXT?.REMAINING_PACKETS || '剩余红包数:'}</strong> 
-              <span style={{ 
-                color: envelopeInfo.remainingPackets > 0 ? '#2ed573' : '#ff4757',
-                fontWeight: 'bold',
-                marginLeft: '5px'
-              }}>
+              <span className={`remaining-count ${envelopeInfo.remainingPackets > 0 ? 'available' : 'depleted'}`}>
                 {envelopeInfo.remainingPackets}
               </span>
             </div>
-            <div style={{ marginBottom: '8px' }}>
+            <div className="info-item">
               <strong>{TEXT?.STATUS || '状态:'}</strong>
-              <span style={{ 
-                color: envelopeInfo.isActive ? '#2ed573' : '#ff4757',
-                fontWeight: 'bold' 
-              }}>
+              <span className={`status-text ${envelopeInfo.isActive ? 'active' : 'inactive'}`}>
                 {envelopeInfo.isActive ? (TEXT?.ACTIVE || ' 🟢 可抢取') : (TEXT?.ENDED || ' 🔴 已抢完')}
               </span>
             </div>
-            <div style={{ marginBottom: '8px' }}>
+            <div className="info-item">
               <strong>{TEXT?.CREATED_TIME || '创建时间:'}</strong> {formatTime(envelopeInfo.createdAt)}
             </div>
-            <div style={{ marginBottom: '8px' }}>
+            <div className="info-item">
               <strong>{TEXT?.CLAIMED_COUNT || '已抢取人数:'}</strong> {envelopeInfo.claimedBy.length}
             </div>
           </div>
 
           {/* 抢取记录 - 集成头像显示 */}
           {envelopeInfo.claimedBy.length > 0 && (
-            <div style={{ marginTop: '15px' }}>
+            <div className="claim-records">
               <strong>{TEXT?.CLAIM_RECORDS || '抢取记录:'}</strong>
-              <div style={{ marginTop: '8px' }}>
+              <div className="claim-records-list">
                 {envelopeInfo.claimedBy.map((address, index) => (
                   <ClaimedUserItem
                     key={`${address}-${index}`}
@@ -507,87 +377,44 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
             </div>
           )}
 
-          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <div className="action-section">
             {hasClaimed ? (
-              <div style={{
-                background: 'rgba(46, 213, 115, 0.2)',
-                border: '1px solid #2ed573',
-                borderRadius: '10px',
-                padding: '15px',
-                color: '#2ed573'
-              }}>
+              <div className="status-message already-claimed">
                 {TEXT?.ALREADY_CLAIMED || '✅ 您已经抢过这个红包了'}
               </div>
             ) : canClaim ? (
               <button
                 onClick={handleClaim}
                 disabled={claiming}
-                style={{
-                  background: claiming ? '#95a5a6' : '#ff6b6b',
-                  color: 'white',
-                  border: 'none',
-                  padding: '15px 30px',
-                  borderRadius: '25px',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                  cursor: claiming ? 'not-allowed' : 'pointer',
-                  opacity: claiming ? 0.6 : 1,
-                  transform: claiming ? 'none' : 'scale(1)',
-                  transition: 'all 0.2s ease'
-                }}
+                className={`claim-button ${claiming ? 'claiming' : 'active'}`}
               >
                 {getClaimButtonText()}
               </button>
             ) : (
-              <div style={{
-                background: 'rgba(255, 71, 87, 0.2)',
-                border: '1px solid #ff4757',
-                borderRadius: '10px',
-                padding: '15px',
-                color: '#ff4757'
-              }}>
+              <div className="status-message cannot-claim">
                 {getStatusMessage()}
               </div>
             )}
           </div>
 
           {claimResult && (
-            <div style={{
-              background: 'rgba(46, 213, 115, 0.2)',
-              border: '1px solid #2ed573',
-              borderRadius: '10px',
-              padding: '20px',
-              marginTop: '20px',
-              textAlign: 'center'
-            }}>
-              <h4 style={{ margin: '0 0 15px 0', color: '#2ed573' }}>
+            <div className="success-message">
+              <h4>
                 {TEXT?.CLAIM_SUCCESS || '🎊 恭喜！抢红包成功！'}
               </h4>
-              <div style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '10px', color: '#2ed573' }}>
+              <div className="success-amount">
                 💰 {claimResult.amount} ETH
               </div>
-              <div style={{ fontSize: '12px', color: '#95a5a6' }}>
+              <div className="transaction-info">
                 {TEXT?.TRANSACTION_HASH || '交易哈希: '}{claimResult.transactionHash.slice(0, 10)}...{claimResult.transactionHash.slice(-8)}
               </div>
-              <div style={{ fontSize: '14px', color: '#ddd', marginTop: '10px' }}>
+              <div className="success-note">
                 🎉 手气不错！快去抢下一个红包吧！
               </div>
             </div>
           )}
         </div>
       )}
-
-      {/* 添加 CSS 动画 */}
-      <style jsx>{`
-        @keyframes shimmer {
-          0% {
-            background-position: -200% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-      `}</style>
     </div>
   );
 };
