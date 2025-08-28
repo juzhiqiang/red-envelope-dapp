@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { TEXT } from '../config/text';
+import { BrowserProvider } from 'ethers';
 import './WalletConnection.css';
 
 interface WalletConnectionProps {
@@ -50,7 +51,8 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
     if (!address || !window.ethereum) return null;
     
     try {
-      const provider = new (window as any).ethers.providers.Web3Provider(window.ethereum);
+      // 使用正确的 ethers v6 语法
+      const provider = new BrowserProvider(window.ethereum);
       
       try {
         const ensName = await provider.lookupAddress(address);
@@ -63,6 +65,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
             }
             return { address, ensName, ensAvatar: avatar };
           } catch (avatarError) {
+            console.log('Error fetching ENS avatar:', avatarError);
             return { address, ensName, ensAvatar: null };
           }
         }
@@ -70,7 +73,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
         console.log('Error fetching ENS name:', ensError);
       }
     } catch (error) {
-      console.error('Error fetching ENS info for', address, error);
+      console.error('Error creating provider for ENS lookup:', error);
     }
     
     return { address };
@@ -128,11 +131,14 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
             console.log('Background ENS fetch failed for', acc);
           }
         }
+        return Promise.resolve(); // 确保返回Promise
       });
       
       // 等待所有ENS信息获取完成，但不阻塞主流程
       Promise.allSettled(promises).then(() => {
         console.log('所有ENS信息获取完成');
+      }).catch((error) => {
+        console.log('ENS批量获取过程中出现错误:', error);
       });
       
     } catch (error) {
