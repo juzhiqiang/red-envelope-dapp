@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { TEXT } from '../config/text';
-import { BrowserProvider } from 'ethers';
 import './WalletConnection.css';
 
 interface WalletConnectionProps {
@@ -8,19 +7,8 @@ interface WalletConnectionProps {
   isConnecting: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
-  onAccountChange?: (account: string) => void | boolean;
+  onAccountChange?: (account: string) => boolean;
   isDisconnecting?: boolean;
-}
-
-interface ENSInfo {
-  name: string | null;
-  avatar: string | null;
-}
-
-interface AccountInfo {
-  address: string;
-  ensName?: string;
-  ensAvatar?: string;
 }
 
 const AVATAR_COLORS = [
@@ -36,74 +24,13 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
   onAccountChange,
   isDisconnecting = false
 }) => {
-  const [ensInfo, setEnsInfo] = useState<ENSInfo>({ name: null, avatar: null });
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const [availableAccounts, setAvailableAccounts] = useState<string[]>([]);
-  const [accountsInfo, setAccountsInfo] = useState<Map<string, AccountInfo>>(new Map());
-  const [isLoadingEns, setIsLoadingEns] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
-
-  const fetchAccountENSInfo = useCallback(async (address: string) => {
-    if (!address || !window.ethereum) return null;
-    
-    try {
-      // 使用正确的 ethers v6 语法
-      const provider = new BrowserProvider(window.ethereum);
-      
-      try {
-        const ensName = await provider.lookupAddress(address);
-        if (ensName) {
-          try {
-            const resolver = await provider.getResolver(ensName);
-            let avatar = null;
-            if (resolver) {
-              avatar = await resolver.getAvatar();
-            }
-            return { address, ensName, ensAvatar: avatar };
-          } catch (avatarError) {
-            console.log('Error fetching ENS avatar:', avatarError);
-            return { address, ensName, ensAvatar: null };
-          }
-        }
-      } catch (ensError) {
-        console.log('Error fetching ENS name:', ensError);
-      }
-    } catch (error) {
-      console.error('Error creating provider for ENS lookup:', error);
-    }
-    
-    return { address };
-  }, []);
-
-  const fetchCurrentAccountENSInfo = useCallback(async (address: string) => {
-    if (!address || !window.ethereum) return;
-    
-    setIsLoadingEns(true);
-    try {
-      const info = await fetchAccountENSInfo(address);
-      if (info) {
-        setEnsInfo({ 
-          name: info.ensName || null, 
-          avatar: info.ensAvatar || null 
-        });
-        
-        setAccountsInfo(prev => {
-          const newMap = new Map(prev);
-          newMap.set(address, info);
-          return newMap;
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching current account ENS info:', error);
-      setEnsInfo({ name: null, avatar: null });
-    } finally {
-      setIsLoadingEns(false);
-    }
-  }, [fetchAccountENSInfo]);
 
   const fetchAvailableAccounts = useCallback(async () => {
     if (!window.ethereum) return;
@@ -115,40 +42,14 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
       });
       setAvailableAccounts(accounts);
       
-      // 批量获取ENS信息，避免重复请求
-      const promises = accounts.map(async (acc: string) => {
-        if (acc !== account && !accountsInfo.has(acc)) {
-          try {
-            const info = await fetchAccountENSInfo(acc);
-            if (info) {
-              setAccountsInfo(prev => {
-                const newMap = new Map(prev);
-                newMap.set(acc, info);
-                return newMap;
-              });
-            }
-          } catch (error) {
-            console.log('Background ENS fetch failed for', acc);
-          }
-        }
-        return Promise.resolve(); // 确保返回Promise
-      });
-      
-      // 等待所有ENS信息获取完成，但不阻塞主流程
-      Promise.allSettled(promises).then(() => {
-        console.log('所有ENS信息获取完成');
-      }).catch((error) => {
-        console.log('ENS批量获取过程中出现错误:', error);
-      });
-      
     } catch (error) {
       console.error('Error fetching accounts:', error);
       setAvailableAccounts([]);
     }
-  }, [account, accountsInfo, fetchAccountENSInfo]);
+  }, []);
 
   // 优化的前端账户切换 - 确保不触发任何 MetaMask API
-  const switchAccount = useCallback(async (selectedAccount: string) => {
+  const switchAccount = useCallback((selectedAccount: string) => {
     if (selectedAccount === account || isSwitching) {
       setShowWalletMenu(false);
       return;
@@ -173,11 +74,10 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
         return;
       }
 
-      // 调用父组件的切换回调 - 修复类型检查
+      // 调用父组件的切换回调
       if (onAccountChange) {
         try {
           const result = onAccountChange(selectedAccount);
-          // 如果返回值是 boolean 且为 false，则表示切换失败
           if (result === false) {
             console.warn('父组件拒绝了账户切换');
             return;
@@ -186,19 +86,6 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
           console.error('账户切换回调执行失败:', error);
           return;
         }
-      }
-      
-      // 立即更新本地 ENS 状态，提升用户体验
-      const cachedInfo = accountsInfo.get(selectedAccount);
-      if (cachedInfo) {
-        setEnsInfo({
-          name: cachedInfo.ensName || null,
-          avatar: cachedInfo.ensAvatar || null
-        });
-      } else {
-        setEnsInfo({ name: null, avatar: null });
-        // 异步获取ENS信息
-        fetchCurrentAccountENSInfo(selectedAccount);
       }
       
       console.log('✅ 账户切换完成:', selectedAccount);
@@ -211,44 +98,15 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
         setIsSwitching(false);
       }, 300);
     }
-  }, [account, isSwitching, availableAccounts, accountsInfo, onAccountChange, fetchCurrentAccountENSInfo]);
-
-  const handleAvatarError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    if (!account) return;
-    
-    const img = e.target as HTMLImageElement;
-    img.style.display = 'none';
-    
-    const parent = img.parentNode as HTMLElement;
-    if (parent && !parent.querySelector('.default-avatar')) {
-      const defaultAvatarDiv = document.createElement('div');
-      defaultAvatarDiv.className = 'default-avatar';
-      const colorIndex = parseInt(account.slice(-2), 16) % AVATAR_COLORS.length;
-      defaultAvatarDiv.style.backgroundColor = AVATAR_COLORS[colorIndex];
-      defaultAvatarDiv.textContent = account.slice(2, 4);
-      parent.appendChild(defaultAvatarDiv);
-    }
-  };
-
-  const getAccountDisplayName = (address: string) => {
-    const cached = accountsInfo.get(address);
-    return cached?.ensName || formatAddress(address);
-  };
-
-  const getAccountAvatar = (address: string) => {
-    const cached = accountsInfo.get(address);
-    return cached?.ensAvatar;
-  };
+  }, [account, isSwitching, availableAccounts, onAccountChange]);
 
   useEffect(() => {
     if (account) {
-      fetchCurrentAccountENSInfo(account);
       fetchAvailableAccounts();
     } else {
-      setEnsInfo({ name: null, avatar: null });
       setAvailableAccounts([]);
     }
-  }, [account, fetchCurrentAccountENSInfo, fetchAvailableAccounts]);
+  }, [account, fetchAvailableAccounts]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -263,25 +121,11 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
   }, [showWalletMenu]);
 
   const renderAvatar = (address: string, size: number = 32) => {
-    if ((isLoadingEns && address === account) || (isSwitching && address === account)) {
+    if (isSwitching && address === account) {
       return (
         <div className="loading-avatar" style={{ width: size, height: size }}>
           <div className="loading-spinner" />
         </div>
-      );
-    }
-
-    const avatarUrl = address === account ? ensInfo.avatar : getAccountAvatar(address);
-    
-    if (avatarUrl) {
-      return (
-        <img
-          src={avatarUrl}
-          alt="Avatar"
-          className="avatar"
-          style={{ width: size, height: size }}
-          onError={address === account ? handleAvatarError : undefined}
-        />
       );
     }
 
@@ -348,16 +192,8 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
                 fontSize: '14px',
                 fontWeight: '500'
               }}>
-                {ensInfo.name || formatAddress(account)}
+                {formatAddress(account)}
               </span>
-              {ensInfo.name && (
-                <span style={{
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  fontSize: '12px'
-                }}>
-                  {formatAddress(account)}
-                </span>
-              )}
             </div>
 
             {isDisconnecting ? (
@@ -427,17 +263,8 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
                       fontSize: '16px',
                       fontWeight: '500'
                     }}>
-                      {ensInfo.name || formatAddress(account)}
+                      {formatAddress(account)}
                     </div>
-                    {ensInfo.name && (
-                      <div style={{
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        fontSize: '12px',
-                        marginTop: '2px'
-                      }}>
-                        {formatAddress(account)}
-                      </div>
-                    )}
                   </div>
                 </div>
                 <div style={{
@@ -476,9 +303,6 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
                     .filter(acc => acc.toLowerCase() !== account.toLowerCase())
                     .slice(0, 4)
                     .map((acc, index, filteredArray) => {
-                      const displayName = getAccountDisplayName(acc);
-                      const isENS = displayName !== formatAddress(acc);
-                      
                       return (
                         <div
                           key={acc}
@@ -499,18 +323,10 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
                             <span style={{
                               color: 'white',
                               fontSize: '14px',
-                              fontWeight: isENS ? '500' : 'normal'
+                              fontWeight: 'normal'
                             }}>
-                              {displayName}
+                              {formatAddress(acc)}
                             </span>
-                            {isENS && (
-                              <span style={{
-                                color: 'rgba(255, 255, 255, 0.6)',
-                                fontSize: '12px'
-                              }}>
-                                {formatAddress(acc)}
-                              </span>
-                            )}
                           </div>
                           <div style={{
                             color: 'rgba(46, 213, 115, 0.8)',
