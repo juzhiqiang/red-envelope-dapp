@@ -40,6 +40,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
   const [availableAccounts, setAvailableAccounts] = useState<string[]>([]);
   const [accountsInfo, setAccountsInfo] = useState<Map<string, AccountInfo>>(new Map());
   const [isLoadingEns, setIsLoadingEns] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -116,12 +117,14 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
     if (!window.ethereum) return;
     
     try {
+      // 使用 eth_accounts 而不是 eth_requestAccounts，避免触发权限请求
       const accounts = await window.ethereum.request({
         method: 'eth_accounts'
       });
       setAvailableAccounts(accounts);
       
-      accounts.forEach(async (acc) => {
+      // 批量获取ENS信息，避免重复请求
+      const promises = accounts.map(async (acc) => {
         if (acc !== account && !accountsInfo.has(acc)) {
           try {
             const info = await fetchAccountENSInfo(acc);
@@ -137,39 +140,77 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
           }
         }
       });
+      
+      // 等待所有ENS信息获取完成，但不阻塞主流程
+      Promise.allSettled(promises).then(() => {
+        console.log('所有ENS信息获取完成');
+      });
+      
     } catch (error) {
       console.error('Error fetching accounts:', error);
       setAvailableAccounts([]);
     }
   }, [account, accountsInfo, fetchAccountENSInfo]);
 
-  // 纯前端账户切换 - 完全不触发 MetaMask API
-  const switchAccount = (selectedAccount: string) => {
-    if (selectedAccount === account) {
+  // 优化的前端账户切换 - 确保不触发任何 MetaMask API
+  const switchAccount = useCallback(async (selectedAccount: string) => {
+    if (selectedAccount === account || isSwitching) {
       setShowWalletMenu(false);
       return;
     }
 
-    console.log('前端直接切换账户:', selectedAccount);
+    console.log('🔄 开始切换账户:', selectedAccount);
     
-    // 直接调用父组件的切换回调
-    if (onAccountChange) {
-      onAccountChange(selectedAccount);
+    setIsSwitching(true);
+    
+    try {
+      // 立即关闭菜单，提升用户体验
+      setShowWalletMenu(false);
+      
+      // 检查是否为已授权账户（从当前的 availableAccounts 中检查）
+      const isAuthorized = availableAccounts.some(
+        addr => addr.toLowerCase() === selectedAccount.toLowerCase()
+      );
+      
+      if (!isAuthorized) {
+        console.warn('⚠️ 尝试切换到未授权的账户:', selectedAccount);
+        console.warn('当前已授权账户:', availableAccounts);
+        return;
+      }
+
+      // 调用父组件的切换回调 - 这里完全不调用任何 MetaMask API
+      if (onAccountChange) {
+        const success = onAccountChange(selectedAccount);
+        if (success === false) {
+          console.warn('父组件拒绝了账户切换');
+          return;
+        }
+      }
+      
+      // 立即更新本地 ENS 状态，提升用户体验
+      const cachedInfo = accountsInfo.get(selectedAccount);
+      if (cachedInfo) {
+        setEnsInfo({
+          name: cachedInfo.ensName || null,
+          avatar: cachedInfo.ensAvatar || null
+        });
+      } else {
+        setEnsInfo({ name: null, avatar: null });
+        // 异步获取ENS信息
+        fetchCurrentAccountENSInfo(selectedAccount);
+      }
+      
+      console.log('✅ 账户切换完成:', selectedAccount);
+      
+    } catch (error) {
+      console.error('❌ 账户切换失败:', error);
+    } finally {
+      // 延迟重置切换状态，确保状态更新完成
+      setTimeout(() => {
+        setIsSwitching(false);
+      }, 300);
     }
-    
-    // 立即更新本地 ENS 状态
-    const cachedInfo = accountsInfo.get(selectedAccount);
-    if (cachedInfo) {
-      setEnsInfo({
-        name: cachedInfo.ensName || null,
-        avatar: cachedInfo.ensAvatar || null
-      });
-    } else {
-      setEnsInfo({ name: null, avatar: null });
-    }
-    
-    setShowWalletMenu(false);
-  };
+  }, [account, isSwitching, availableAccounts, accountsInfo, onAccountChange, fetchCurrentAccountENSInfo]);
 
   const handleAvatarError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     if (!account) return;
@@ -221,7 +262,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
   }, [showWalletMenu]);
 
   const renderAvatar = (address: string, size: number = 32) => {
-    if (isLoadingEns && address === account) {
+    if ((isLoadingEns && address === account) || (isSwitching && address === account)) {
       return (
         <div className="loading-avatar" style={{ width: size, height: size }}>
           <div className="loading-spinner" />
@@ -277,7 +318,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
         <div className="wallet-menu-container" style={{ position: 'relative' }}>
           <div
             className="wallet-menu-hover"
-            onClick={() => !isDisconnecting && setShowWalletMenu(!showWalletMenu)}
+            onClick={() => !isDisconnecting && !isSwitching && setShowWalletMenu(!showWalletMenu)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -285,11 +326,11 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
               background: 'rgba(255, 255, 255, 0.1)',
               padding: '8px 16px',
               borderRadius: '25px',
-              cursor: isDisconnecting ? 'not-allowed' : 'pointer',
+              cursor: (isDisconnecting || isSwitching) ? 'not-allowed' : 'pointer',
               border: '1px solid rgba(255, 255, 255, 0.2)',
               backdropFilter: 'blur(10px)',
-              opacity: isDisconnecting ? 0.7 : 1,
-              pointerEvents: isDisconnecting ? 'none' : 'auto'
+              opacity: (isDisconnecting || isSwitching) ? 0.7 : 1,
+              pointerEvents: (isDisconnecting || isSwitching) ? 'none' : 'auto'
             }}
           >
             <div style={{ width: '32px', height: '32px', position: 'relative' }}>
@@ -328,6 +369,16 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
                   断开中...
                 </span>
               </div>
+            ) : isSwitching ? (
+              <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div className="loading-spinner" style={{
+                  width: '12px',
+                  height: '12px'
+                }} />
+                <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '12px' }}>
+                  切换中...
+                </span>
+              </div>
             ) : (
               <>
                 {availableAccounts.length > 1 && (
@@ -356,7 +407,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
             )}
           </div>
 
-          {showWalletMenu && !isDisconnecting && (
+          {showWalletMenu && !isDisconnecting && !isSwitching && (
             <div className="wallet-dropdown">
               <div style={{
                 padding: '16px',
@@ -431,13 +482,15 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
                         <div
                           key={acc}
                           className="account-item"
-                          onClick={() => switchAccount(acc)}
+                          onClick={() => !isSwitching && switchAccount(acc)}
                           style={{
                             borderBottom: index === filteredArray.length - 1
                               ? '1px solid rgba(255, 255, 255, 0.1)' 
                               : 'none',
                             position: 'relative',
-                            cursor: 'pointer'
+                            cursor: isSwitching ? 'not-allowed' : 'pointer',
+                            opacity: isSwitching ? 0.6 : 1,
+                            pointerEvents: isSwitching ? 'none' : 'auto'
                           }}
                         >
                           {renderAvatar(acc)}
@@ -484,7 +537,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
                 gap: '4px'
               }}>
                 <span>💡</span>
-                <span>已授权账户间可以直接切换，无需 MetaMask 确认</span>
+                <span>已授权账户间可以直接切换，完全无需 MetaMask 确认</span>
               </div>
 
               <div

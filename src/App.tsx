@@ -36,24 +36,38 @@ const App: React.FC = () => {
   const [contractConstants, setContractConstants] = useState({ totalAmount: "0.05", maxRecipients: 6 });
   const [lastUpdateTime, setLastUpdateTime] = useState<number>(Date.now());
 
-  // 处理账户变化的回调 - 现在支持无缝切换
-  const handleAccountChange = (newAccount: string) => {
-    console.log('切换账户:', newAccount);
+  // 优化的账户变化处理回调 - 确保无缝切换已授权账户
+  const handleAccountChange = useCallback((newAccount: string) => {
+    console.log('🔄 App层处理账户切换:', newAccount);
+    console.log('📝 当前已授权账户:', authorizedAccounts);
     
     // 检查是否为已授权账户
-    if (authorizedAccounts.includes(newAccount)) {
-      // 直接切换，无需询问确认
-      setAccount(newAccount);
-      // 立即触发数据重新加载
-      setLastUpdateTime(Date.now());
+    const isAuthorized = authorizedAccounts.some(
+      addr => addr.toLowerCase() === newAccount.toLowerCase()
+    );
+    
+    if (isAuthorized) {
+      console.log('✅ 验证通过，执行账户切换');
+      // 调用useWallet的setAccount方法进行切换
+      const success = setAccount(newAccount);
+      if (success !== false) {
+        // 立即触发数据重新加载
+        console.log('📊 触发数据重新加载');
+        setLastUpdateTime(Date.now());
+      }
+      return success;
     } else {
-      console.warn('尝试切换到未授权的账户:', newAccount);
+      console.warn('⚠️ 账户未授权，拒绝切换:', newAccount);
+      console.warn('已授权账户列表:', authorizedAccounts);
+      return false;
     }
-  };
+  }, [authorizedAccounts, setAccount]);
 
   const fetchRedPacketInfo = useCallback(async () => {
     if (provider) {
       try {
+        console.log('📊 开始获取红包信息，当前账户:', account);
+        
         const info = await getRedPacketInfo();
         setRedPacketInfo(info);
         
@@ -64,7 +78,9 @@ const App: React.FC = () => {
         setContractConstants(constants);
         
         if (account) {
-          setIsOwner(account.toLowerCase() === owner.toLowerCase());
+          const accountLower = account.toLowerCase();
+          const ownerLower = owner.toLowerCase();
+          setIsOwner(accountLower === ownerLower);
           
           const claimed = await hasUserClaimed(account);
           setUserHasClaimed(claimed);
@@ -76,6 +92,8 @@ const App: React.FC = () => {
             // 重置已领取金额
             setUserClaimedAmount("0");
           }
+          
+          console.log('📊 红包信息更新完成，账户:', account, '是否为拥有者:', accountLower === ownerLower);
         }
       } catch (error) {
         console.error('Failed to fetch red packet info:', error);
@@ -116,7 +134,7 @@ const App: React.FC = () => {
     try {
       const result = await claimEnvelope();
       if (result) {
-        alert(`恭喜！您领取了 ${result.amount} ETH\\n交易哈希: ${result.transactionHash}`);
+        alert(`恭喜！您领取了 ${result.amount} ETH\n交易哈希: ${result.transactionHash}`);
         setLastUpdateTime(Date.now());
       }
     } catch (error: any) {
@@ -209,6 +227,15 @@ const App: React.FC = () => {
       transition: 'all 0.3s ease',
       position: 'relative' as const,
       overflow: 'hidden'
+    },
+    footer: {
+      textAlign: 'center' as const,
+      padding: '40px 20px',
+      color: 'rgba(255, 255, 255, 0.8)',
+      fontSize: '14px',
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      background: 'rgba(255, 255, 255, 0.05)',
+      backdropFilter: 'blur(10px)'
     }
   };
 
@@ -233,7 +260,7 @@ const App: React.FC = () => {
       </div>
 
       <div style={styles.mainContainer}>
-        {/* 钱包状态提示 */}
+        {/* 优化的钱包状态提示 */}
         {account && authorizedAccounts.length > 1 && (
           <div style={{
             ...styles.card,
@@ -250,7 +277,7 @@ const App: React.FC = () => {
             }}>
               <span>⚡</span>
               <span>
-                检测到 {authorizedAccounts.length} 个已授权账户，可以通过钱包菜单快速切换，无需确认
+                检测到 {authorizedAccounts.length} 个已授权账户，可以通过钱包菜单快速切换，完全无需 MetaMask 确认
               </span>
             </div>
           </div>
@@ -258,8 +285,214 @@ const App: React.FC = () => {
 
         {account ? (
           <>
-            {/* 其他组件内容已省略，保持原有样式和功能 */}
-            <div>主要功能内容...</div>
+            {/* 合约信息卡片 */}
+            <div style={styles.card}>
+              <h2 style={{ marginBottom: '20px', fontSize: '24px' }}>📋 合约信息</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                <div>
+                  <p style={{ marginBottom: '8px', opacity: 0.8 }}>📍 合约地址</p>
+                  <p style={{ fontFamily: 'monospace', fontSize: '14px', wordBreak: 'break-all' }}>
+                    {contractAddress}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ marginBottom: '8px', opacity: 0.8 }}>👑 合约拥有者</p>
+                  <p style={{ fontFamily: 'monospace', fontSize: '14px', wordBreak: 'break-all' }}>
+                    {contractOwner}
+                    {isOwner && <span style={{ color: '#2ed573', marginLeft: '8px' }}>（您）</span>}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 红包状态卡片 */}
+            <div style={styles.card}>
+              <h2 style={{ marginBottom: '20px', fontSize: '24px' }}>🎁 红包状态</h2>
+              
+              {redPacketInfo && (
+                <>
+                  <div style={{ 
+                    background: 'rgba(255, 255, 255, 0.1)', 
+                    borderRadius: '15px', 
+                    padding: '20px', 
+                    marginBottom: '20px' 
+                  }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', textAlign: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '32px', marginBottom: '8px' }}>💰</div>
+                        <div style={{ opacity: 0.8, fontSize: '14px', marginBottom: '4px' }}>总金额</div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{contractConstants.totalAmount} ETH</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '32px', marginBottom: '8px' }}>📤</div>
+                        <div style={{ opacity: 0.8, fontSize: '14px', marginBottom: '4px' }}>已分发</div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{redPacketInfo.distributedAmount} ETH</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '32px', marginBottom: '8px' }}>👥</div>
+                        <div style={{ opacity: 0.8, fontSize: '14px', marginBottom: '4px' }}>已领取人数</div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{redPacketInfo.claimedCount}/{contractConstants.maxRecipients}</div>
+                      </div>
+                    </div>
+                    
+                    {/* 进度条 */}
+                    <div style={{ marginTop: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '14px', opacity: 0.8 }}>分发进度</span>
+                        <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{getProgressPercentage().toFixed(1)}%</span>
+                      </div>
+                      <div style={{ 
+                        background: 'rgba(255, 255, 255, 0.2)', 
+                        borderRadius: '10px', 
+                        height: '8px', 
+                        overflow: 'hidden' 
+                      }}>
+                        <div style={{ 
+                          background: 'linear-gradient(90deg, #2ed573, #26d46c)',
+                          height: '100%', 
+                          width: `${getProgressPercentage()}%`,
+                          transition: 'width 0.3s ease'
+                        }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 用户状态 */}
+                  <div style={{
+                    background: userHasClaimed 
+                      ? 'rgba(46, 213, 115, 0.2)' 
+                      : 'rgba(255, 193, 7, 0.2)',
+                    border: userHasClaimed 
+                      ? '1px solid rgba(46, 213, 115, 0.4)' 
+                      : '1px solid rgba(255, 193, 7, 0.4)',
+                    borderRadius: '15px',
+                    padding: '20px',
+                    textAlign: 'center',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>
+                      {userHasClaimed ? '✅' : '🎁'}
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
+                      {userHasClaimed ? '您已领取红包' : '您可以领取红包'}
+                    </div>
+                    {userHasClaimed && (
+                      <div style={{ fontSize: '16px', opacity: 0.9 }}>
+                        获得金额: <strong>{userClaimedAmount} ETH</strong>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* 操作按钮 */}
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+                {isOwner && (
+                  <button
+                    onClick={handleDeposit}
+                    disabled={loading}
+                    style={{
+                      background: 'linear-gradient(135deg, #3742fa, #2f3542)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '15px 30px',
+                      borderRadius: '25px',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 4px 15px rgba(55, 66, 250, 0.3)',
+                      opacity: loading ? 0.7 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {loading && (
+                      <div className="loading-spinner" style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255, 255, 255, 0.3)',
+                        borderTop: '2px solid white'
+                      }} />
+                    )}
+                    💰 充值红包 ({contractConstants.totalAmount} ETH)
+                  </button>
+                )}
+                
+                {!userHasClaimed && redPacketInfo && redPacketInfo.claimedCount < contractConstants.maxRecipients && (
+                  <button
+                    onClick={handleClaimRedPacket}
+                    disabled={loading || userHasClaimed}
+                    style={{
+                      background: userHasClaimed 
+                        ? 'rgba(149, 165, 166, 0.8)' 
+                        : 'linear-gradient(135deg, #ff4757, #ff3838)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '15px 30px',
+                      borderRadius: '25px',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      cursor: (loading || userHasClaimed) ? 'not-allowed' : 'pointer',
+                      boxShadow: userHasClaimed 
+                        ? 'none' 
+                        : '0 4px 15px rgba(255, 71, 87, 0.3)',
+                      opacity: (loading || userHasClaimed) ? 0.7 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {loading && (
+                      <div className="loading-spinner" style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255, 255, 255, 0.3)',
+                        borderTop: '2px solid white'
+                      }} />
+                    )}
+                    🧧 {userHasClaimed ? '已领取' : '领取红包'}
+                  </button>
+                )}
+              </div>
+
+              {/* 提示信息 */}
+              {redPacketInfo && redPacketInfo.claimedCount >= contractConstants.maxRecipients && !userHasClaimed && (
+                <div style={{
+                  background: 'rgba(255, 71, 87, 0.2)',
+                  border: '1px solid rgba(255, 71, 87, 0.4)',
+                  borderRadius: '15px',
+                  padding: '15px',
+                  textAlign: 'center',
+                  marginTop: '15px'
+                }}>
+                  <span style={{ fontSize: '24px', marginRight: '8px' }}>😭</span>
+                  红包已被抢完！下次要快一点哦~
+                </div>
+              )}
+            </div>
+
+            {/* 操作说明 */}
+            <div style={styles.card}>
+              <h3 style={{ marginBottom: '15px', fontSize: '20px' }}>📖 使用说明</h3>
+              <div style={{ lineHeight: '1.8', fontSize: '16px' }}>
+                <p style={{ marginBottom: '12px' }}>
+                  🎯 <strong>合约拥有者</strong>：可以向红包合约充值，设定总金额和最大领取人数
+                </p>
+                <p style={{ marginBottom: '12px' }}>
+                  🧧 <strong>用户</strong>：连接钱包后可以领取红包，每个地址只能领取一次
+                </p>
+                <p style={{ marginBottom: '12px' }}>
+                  🎲 <strong>随机分配</strong>：系统会根据算法随机分配每个红包的金额
+                </p>
+                <p style={{ marginBottom: '12px' }}>
+                  ⚡ <strong>快速切换</strong>：已授权的多个账户间可以无缝切换，无需重新授权
+                </p>
+                <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px' }}>
+                  ⚠️ 本应用仅供学习测试使用，请在测试网络环境中使用
+                </p>
+              </div>
+            </div>
           </>
         ) : (
           <div style={styles.container}>
@@ -292,7 +525,7 @@ const App: React.FC = () => {
                 <br />
                 🔒 智能合约保证安全性
                 <br />
-                ⚡ 支持多账户快速切换
+                ⚡ 支持多账户快速切换，无需重新授权
               </div>
               <p style={{ fontSize: '18px', color: '#f39c12', fontWeight: 'bold' }}>
                 请先连接您的 MetaMask 钱包开始使用
@@ -306,7 +539,7 @@ const App: React.FC = () => {
         <p>🚀 Red Packet DApp - 基于区块链的智能红包系统</p>
         <p>⚠️ 仅供学习和测试使用，请在测试网络中使用</p>
         <p style={{marginTop: '10px', color: 'rgba(255, 255, 255, 0.6)'}}>
-          ⚡ v2.0 - 支持快速账户切换 & ENS 显示
+          ⚡ v2.1 - 修复账户切换授权问题，支持真正的无缝切换
         </p>
       </div>
     </div>
