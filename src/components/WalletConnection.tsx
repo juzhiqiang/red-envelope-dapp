@@ -7,7 +7,7 @@ interface WalletConnectionProps {
   isConnecting: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
-  onAccountChange?: (account: string) => void | boolean; // 修改返回类型
+  onAccountChange?: (account: string) => void | boolean;
   isDisconnecting?: boolean;
 }
 
@@ -44,17 +44,6 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
-
-  const generateDefaultAvatar = (address: string) => {
-    const colorIndex = parseInt(address.slice(-2), 16) % AVATAR_COLORS.length;
-    const backgroundColor = AVATAR_COLORS[colorIndex];
-    
-    return (
-      <div className="default-avatar" style={{ backgroundColor }}>
-        {address.slice(2, 4)}
-      </div>
-    );
   };
 
   const fetchAccountENSInfo = useCallback(async (address: string) => {
