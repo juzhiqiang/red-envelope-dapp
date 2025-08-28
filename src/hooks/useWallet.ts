@@ -118,20 +118,27 @@ export const useWallet = () => {
     }
   }, []);
 
-  // 直接切换账户的方法（无需 MetaMask 确认）
-  const updateAccount = useCallback((newAccount: string) => {
+  // 纯应用层的账户切换（不触发任何 MetaMask API）
+  const switchToAccount = useCallback((newAccount: string) => {
+    console.log('应用层切换账户:', newAccount, '已授权账户:', authorizedAccounts);
+    
     // 检查新账户是否在已授权的账户列表中
-    if (authorizedAccounts.includes(newAccount)) {
-      setAccount(newAccount);
-      // 更新 provider 以确保使用新账户
-      if (window.ethereum) {
-        const newProvider = new BrowserProvider(window.ethereum);
-        setProvider(newProvider);
-      }
-      console.log('账户切换成功:', newAccount);
-    } else {
+    if (!authorizedAccounts.includes(newAccount)) {
       console.warn('尝试切换到未授权的账户:', newAccount);
+      return false;
     }
+
+    // 只更新应用层状态，不调用任何 MetaMask API
+    setAccount(newAccount);
+    
+    // 创建新的 provider 实例，但不触发任何权限请求
+    if (window.ethereum) {
+      const newProvider = new BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+    }
+    
+    console.log('账户切换成功 (应用层):', newAccount);
+    return true;
   }, [authorizedAccounts]);
 
   // 强制断开连接（清理所有状态）
@@ -172,7 +179,7 @@ export const useWallet = () => {
 
     if (window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
-        console.log('Accounts changed:', accounts);
+        console.log('MetaMask 账户变化:', accounts);
         
         // 更新授权账户列表
         setAuthorizedAccounts(accounts);
@@ -184,9 +191,10 @@ export const useWallet = () => {
         } else {
           // 检查当前账户是否还在授权列表中
           if (account && !accounts.includes(account)) {
-            // 当前账户不再可用，切换到第一个可用账户
+            // 当前账户不再可用，切换到第一个可用账户（应用层切换）
+            console.log('当前账户不再可用，自动切换到:', accounts[0]);
             setAccount(accounts[0]);
-          } else if (!account) {
+          } else if (!account && accounts.length > 0) {
             // 如果当前没有选中账户，设置为第一个
             setAccount(accounts[0]);
           }
@@ -200,19 +208,19 @@ export const useWallet = () => {
       };
 
       const handleChainChanged = (chainId: string) => {
-        console.log('Chain changed:', chainId);
-        // 链变化时重新检查连接而不是直接刷新页面
+        console.log('链变化:', chainId);
+        // 链变化时重新检查连接
         checkConnection();
       };
 
       const handleDisconnect = (error: any) => {
-        console.log('MetaMask disconnected:', error);
+        console.log('MetaMask 断开连接:', error);
         setAccount(null);
         setProvider(null);
         setAuthorizedAccounts([]);
       };
 
-      // 添加更多的事件监听器
+      // 添加事件监听器
       window.ethereum.on('accountsChanged', handleAccountsChanged);
       window.ethereum.on('chainChanged', handleChainChanged);
       window.ethereum.on('disconnect', handleDisconnect);
@@ -237,7 +245,7 @@ export const useWallet = () => {
     disconnectWallet,
     forceDisconnect,
     checkConnection,
-    setAccount: updateAccount, // 导出 setAccount 方法用于直接切换账户
+    setAccount: switchToAccount, // 使用新的纯应用层切换方法
     isAccountAuthorized,
     getAuthorizedAccounts
   };
