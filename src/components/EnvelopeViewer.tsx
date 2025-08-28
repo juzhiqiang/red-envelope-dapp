@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { EnvelopeInfo, ClaimResult } from '../types';
 import { TEXT } from '../config/text';
+import useENS from '../hooks/useENS';
+import { generateGradientAvatar, formatAddress } from '../utils/avatarGenerator';
 
 interface EnvelopeViewerProps {
   onQueryEnvelope: (id: number) => Promise<EnvelopeInfo | null>;
@@ -22,6 +24,10 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
   const [hasClaimed, setHasClaimed] = useState<boolean>(false);
   const [claimResult, setClaimResult] = useState<ClaimResult | null>(null);
   const [claiming, setClaiming] = useState(false);
+  const [avatarErrors, setAvatarErrors] = useState<Set<string>>(new Set());
+
+  // 为创建者使用 ENS
+  const { name: creatorEnsName, avatar: creatorEnsAvatar, isLoading: creatorEnsLoading } = useENS(envelopeInfo?.creator);
 
   const handleQuery = async () => {
     if (!envelopeId || !userAddress) return;
@@ -41,6 +47,7 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
       setEnvelopeInfo(info);
       setHasClaimed(claimed);
       setClaimResult(null);
+      setAvatarErrors(new Set()); // 重置头像错误状态
     } catch (error) {
       console.error('Query envelope failed:', error);
       alert(TEXT?.QUERY_FAILED || '查询红包失败，请检查红包ID是否正确');
@@ -79,8 +86,99 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
     return new Date(timestamp * 1000).toLocaleString('zh-CN');
   };
 
-  const formatAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  // 处理头像错误
+  const handleAvatarError = (address: string) => {
+    setAvatarErrors(prev => new Set(prev).add(address));
+  };
+
+  // 渲染地址头像 - 支持 ENS
+  const renderAddressAvatar = (address: string, size: number = 24) => {
+    const hasError = avatarErrors.has(address);
+    
+    // 如果是创建者，使用 ENS 数据
+    if (address === envelopeInfo?.creator) {
+      if (creatorEnsLoading) {
+        return (
+          <div 
+            style={{ 
+              width: size, 
+              height: size,
+              borderRadius: '50%',
+              background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 1.5s infinite',
+              marginRight: '8px'
+            }}
+          />
+        );
+      }
+
+      if (creatorEnsAvatar && !hasError) {
+        return (
+          <img
+            src={creatorEnsAvatar}
+            alt={creatorEnsName || 'Creator Avatar'}
+            style={{
+              width: size,
+              height: size,
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              marginRight: '8px'
+            }}
+            onError={() => handleAvatarError(address)}
+          />
+        );
+      }
+    }
+
+    // 使用生成的头像
+    return (
+      <img
+        src={generateGradientAvatar(address)}
+        alt="Avatar"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          marginRight: '8px'
+        }}
+      />
+    );
+  };
+
+  // 渲染地址名称 - 支持 ENS
+  const renderAddressName = (address: string) => {
+    // 如果是创建者，使用 ENS 数据
+    if (address === envelopeInfo?.creator) {
+      if (creatorEnsLoading) {
+        return (
+          <div 
+            style={{
+              width: '100px',
+              height: '16px',
+              background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
+              backgroundSize: '200% 100%',
+              borderRadius: '4px',
+              animation: 'shimmer 1.5s infinite'
+            }}
+          />
+        );
+      }
+
+      const displayName = creatorEnsName || formatAddress(address);
+      const isENS = Boolean(creatorEnsName);
+
+      return (
+        <span style={{ color: isENS ? '#00d4ff' : 'white', fontWeight: isENS ? '600' : 'normal' }}>
+          {displayName}
+        </span>
+      );
+    }
+
+    // 对于其他地址，使用简单的格式化显示
+    return <span>{formatAddress(address)}</span>;
   };
 
   const canClaim = envelopeInfo && 
@@ -204,9 +302,27 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
             <div style={{ marginBottom: '8px' }}>
               <strong>{TEXT?.ENVELOPE_ID || '红包ID:'}</strong> {envelopeInfo.id}
             </div>
-            <div style={{ marginBottom: '8px' }}>
-              <strong>{TEXT?.CREATOR || '创建者:'}</strong> {formatAddress(envelopeInfo.creator)}
+            
+            {/* 创建者信息 - 集成 ENS 显示 */}
+            <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
+              <strong style={{ marginRight: '8px' }}>{TEXT?.CREATOR || '创建者:'}</strong>
+              {renderAddressAvatar(envelopeInfo.creator, 20)}
+              {renderAddressName(envelopeInfo.creator)}
+              {creatorEnsName && (
+                <div style={{ 
+                  marginLeft: '8px', 
+                  fontSize: '10px', 
+                  background: 'rgba(0, 212, 255, 0.2)', 
+                  color: '#00d4ff',
+                  padding: '2px 6px',
+                  borderRadius: '8px',
+                  fontWeight: 'bold'
+                }}>
+                  ENS
+                </div>
+              )}
             </div>
+            
             <div style={{ marginBottom: '8px' }}>
               <strong>{(TEXT?.TOTAL_AMOUNT || '红包总金额:').replace(':', '')}</strong> {envelopeInfo.totalAmount} ETH
             </div>
@@ -240,24 +356,20 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
             </div>
           </div>
 
+          {/* 抢取记录 - 集成头像显示 */}
           {envelopeInfo.claimedBy.length > 0 && (
             <div style={{ marginTop: '15px' }}>
               <strong>{TEXT?.CLAIM_RECORDS || '抢取记录:'}</strong>
               <div style={{ marginTop: '8px' }}>
                 {envelopeInfo.claimedBy.map((address, index) => (
-                  <div key={index} style={{
-                    background: 'rgba(0, 0, 0, 0.2)',
-                    padding: '5px 10px',
-                    borderRadius: '5px',
-                    marginBottom: '5px',
-                    fontSize: '12px',
-                    fontFamily: 'monospace',
-                    display: 'flex',
-                    justifyContent: 'space-between'
-                  }}>
-                    <span>{index + 1}. {formatAddress(address)}</span>
-                    <span style={{ color: '#2ed573' }}>✓ 已抢到</span>
-                  </div>
+                  <ClaimedUserItem
+                    key={`${address}-${index}`}
+                    address={address}
+                    index={index}
+                    currentUser={userAddress}
+                    onAvatarError={() => handleAvatarError(address)}
+                    hasAvatarError={avatarErrors.has(address)}
+                  />
                 ))}
               </div>
             </div>
@@ -332,6 +444,149 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
           )}
         </div>
       )}
+
+      {/* 添加 CSS 动画 */}
+      <style jsx>{`
+        @keyframes shimmer {
+          0% {
+            background-position: -200% 0;
+          }
+          100% {
+            background-position: 200% 0;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// 独立的已抢取用户项组件，支持 ENS
+interface ClaimedUserItemProps {
+  address: string;
+  index: number;
+  currentUser: string | null;
+  onAvatarError: () => void;
+  hasAvatarError: boolean;
+}
+
+const ClaimedUserItem: React.FC<ClaimedUserItemProps> = ({
+  address,
+  index,
+  currentUser,
+  onAvatarError,
+  hasAvatarError
+}) => {
+  const { name: ensName, avatar: ensAvatar, isLoading: ensLoading } = useENS(address);
+  const isCurrentUser = currentUser && address.toLowerCase() === currentUser.toLowerCase();
+
+  const renderAvatar = () => {
+    if (ensLoading) {
+      return (
+        <div 
+          style={{ 
+            width: 20, 
+            height: 20,
+            borderRadius: '50%',
+            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.5s infinite',
+            marginRight: '8px'
+          }}
+        />
+      );
+    }
+
+    if (ensAvatar && !hasAvatarError) {
+      return (
+        <img
+          src={ensAvatar}
+          alt={ensName || 'Avatar'}
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            objectFit: 'cover',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            marginRight: '8px'
+          }}
+          onError={onAvatarError}
+        />
+      );
+    }
+
+    return (
+      <img
+        src={generateGradientAvatar(address)}
+        alt="Avatar"
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          marginRight: '8px'
+        }}
+      />
+    );
+  };
+
+  const getDisplayName = () => {
+    if (ensLoading) {
+      return (
+        <div 
+          style={{
+            width: '80px',
+            height: '12px',
+            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
+            backgroundSize: '200% 100%',
+            borderRadius: '4px',
+            animation: 'shimmer 1.5s infinite'
+          }}
+        />
+      );
+    }
+
+    const displayName = ensName || formatAddress(address);
+    const isENS = Boolean(ensName);
+
+    return (
+      <span style={{ color: isENS ? '#00d4ff' : 'white', fontWeight: isENS ? '600' : 'normal' }}>
+        {displayName}
+        {isCurrentUser && <span style={{ color: '#ffd700', marginLeft: '4px' }}>(你)</span>}
+      </span>
+    );
+  };
+
+  return (
+    <div style={{
+      background: isCurrentUser ? 'rgba(255, 215, 0, 0.2)' : 'rgba(0, 0, 0, 0.2)',
+      border: isCurrentUser ? '1px solid rgba(255, 215, 0, 0.5)' : 'none',
+      padding: '8px 10px',
+      borderRadius: '8px',
+      marginBottom: '5px',
+      fontSize: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <span style={{ marginRight: '8px', fontWeight: 'bold' }}>{index + 1}.</span>
+        {renderAvatar()}
+        {getDisplayName()}
+        {ensName && (
+          <div style={{ 
+            marginLeft: '6px', 
+            fontSize: '8px', 
+            background: 'rgba(0, 212, 255, 0.3)', 
+            color: '#00d4ff',
+            padding: '1px 4px',
+            borderRadius: '6px',
+            fontWeight: 'bold'
+          }}>
+            ENS
+          </div>
+        )}
+      </div>
+      <span style={{ color: '#2ed573', fontWeight: 'bold' }}>✓ 已抢到</span>
     </div>
   );
 };
