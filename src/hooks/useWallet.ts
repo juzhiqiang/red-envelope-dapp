@@ -7,6 +7,7 @@ export const useWallet = () => {
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [authorizedAccounts, setAuthorizedAccounts] = useState<string[]>([]);
 
   const connectWallet = useCallback(async () => {
     if (!window.ethereum) {
@@ -24,6 +25,7 @@ export const useWallet = () => {
         const browserProvider = new BrowserProvider(window.ethereum);
         setProvider(browserProvider);
         setAccount(accounts[0]);
+        setAuthorizedAccounts(accounts); // 记录已授权的账户
         console.log(TEXT.WALLET_CONNECTED, accounts[0]);
       }
     } catch (error: any) {
@@ -58,6 +60,7 @@ export const useWallet = () => {
       // 方法2: 清理本地状态
       setAccount(null);
       setProvider(null);
+      setAuthorizedAccounts([]);
       
       // 方法3: 清理本地存储（如果有的话）
       if (typeof Storage !== 'undefined') {
@@ -74,19 +77,14 @@ export const useWallet = () => {
         keysToRemove.forEach(key => localStorage.removeItem(key));
       }
 
-      // 方法4: 通知用户手动断开（如果需要）
       console.log(TEXT.WALLET_DISCONNECTED);
-      
-      // 可选：显示断开成功的消息
-      setTimeout(() => {
-        console.log('钱包已断开连接');
-      }, 100);
       
     } catch (error) {
       console.error('Disconnect wallet error:', error);
       // 即使出错，也要清理本地状态
       setAccount(null);
       setProvider(null);
+      setAuthorizedAccounts([]);
     } finally {
       setIsDisconnecting(false);
     }
@@ -103,31 +101,38 @@ export const useWallet = () => {
           const browserProvider = new BrowserProvider(window.ethereum);
           setProvider(browserProvider);
           setAccount(accounts[0]);
+          setAuthorizedAccounts(accounts); // 记录已授权的账户
         } else {
           // 如果没有账户，确保清理状态
           setAccount(null);
           setProvider(null);
+          setAuthorizedAccounts([]);
         }
       } catch (error) {
         console.error('Check connection failed:', error);
         // 检查连接失败时也清理状态
         setAccount(null);
         setProvider(null);
+        setAuthorizedAccounts([]);
       }
     }
   }, []);
 
-  // 手动设置账户的方法（用于切换账户）
+  // 直接切换账户的方法（无需 MetaMask 确认）
   const updateAccount = useCallback((newAccount: string) => {
-    if (newAccount !== account) {
+    // 检查新账户是否在已授权的账户列表中
+    if (authorizedAccounts.includes(newAccount)) {
       setAccount(newAccount);
       // 更新 provider 以确保使用新账户
       if (window.ethereum) {
         const newProvider = new BrowserProvider(window.ethereum);
         setProvider(newProvider);
       }
+      console.log('账户切换成功:', newAccount);
+    } else {
+      console.warn('尝试切换到未授权的账户:', newAccount);
     }
-  }, [account]);
+  }, [authorizedAccounts]);
 
   // 强制断开连接（清理所有状态）
   const forceDisconnect = useCallback(() => {
@@ -135,6 +140,7 @@ export const useWallet = () => {
     setProvider(null);
     setIsConnecting(false);
     setIsDisconnecting(false);
+    setAuthorizedAccounts([]);
     
     // 清理本地存储
     if (typeof Storage !== 'undefined') {
@@ -151,19 +157,41 @@ export const useWallet = () => {
     console.log('强制断开连接完成');
   }, []);
 
+  // 检查账户是否已授权
+  const isAccountAuthorized = useCallback((address: string) => {
+    return authorizedAccounts.includes(address);
+  }, [authorizedAccounts]);
+
+  // 获取已授权账户列表
+  const getAuthorizedAccounts = useCallback(() => {
+    return authorizedAccounts;
+  }, [authorizedAccounts]);
+
   useEffect(() => {
     checkConnection();
 
     if (window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
         console.log('Accounts changed:', accounts);
+        
+        // 更新授权账户列表
+        setAuthorizedAccounts(accounts);
+        
         if (accounts.length === 0) {
           // 如果没有账户了，执行断开连接
           setAccount(null);
           setProvider(null);
-        } else if (accounts[0] !== account) {
-          setAccount(accounts[0]);
-          // 添加空值检查
+        } else {
+          // 检查当前账户是否还在授权列表中
+          if (account && !accounts.includes(account)) {
+            // 当前账户不再可用，切换到第一个可用账户
+            setAccount(accounts[0]);
+          } else if (!account) {
+            // 如果当前没有选中账户，设置为第一个
+            setAccount(accounts[0]);
+          }
+          
+          // 确保 provider 是最新的
           if (window.ethereum) {
             const newProvider = new BrowserProvider(window.ethereum);
             setProvider(newProvider);
@@ -181,6 +209,7 @@ export const useWallet = () => {
         console.log('MetaMask disconnected:', error);
         setAccount(null);
         setProvider(null);
+        setAuthorizedAccounts([]);
       };
 
       // 添加更多的事件监听器
@@ -203,10 +232,13 @@ export const useWallet = () => {
     provider,
     isConnecting,
     isDisconnecting,
+    authorizedAccounts,
     connectWallet,
     disconnectWallet,
     forceDisconnect,
     checkConnection,
-    setAccount: updateAccount // 导出 setAccount 方法用于手动切换账户
+    setAccount: updateAccount, // 导出 setAccount 方法用于直接切换账户
+    isAccountAuthorized,
+    getAuthorizedAccounts
   };
 };
