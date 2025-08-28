@@ -36,8 +36,8 @@ const App: React.FC = () => {
   const [contractConstants, setContractConstants] = useState({ totalAmount: "0.05", maxRecipients: 6 });
   const [lastUpdateTime, setLastUpdateTime] = useState<number>(Date.now());
 
-  // 优化的账户变化处理回调 - 确保无缝切换已授权账户
-  const handleAccountChange = useCallback((newAccount: string) => {
+  // 修复类型问题：确保返回类型明确
+  const handleAccountChange = useCallback((newAccount: string): boolean => {
     console.log('🔄 App层处理账户切换:', newAccount);
     console.log('📝 当前已授权账户:', authorizedAccounts);
     
@@ -54,8 +54,9 @@ const App: React.FC = () => {
         // 立即触发数据重新加载
         console.log('📊 触发数据重新加载');
         setLastUpdateTime(Date.now());
+        return true;
       }
-      return success;
+      return false;
     } else {
       console.warn('⚠️ 账户未授权，拒绝切换:', newAccount);
       console.warn('已授权账户列表:', authorizedAccounts);
@@ -495,7 +496,7 @@ const App: React.FC = () => {
             </div>
           </>
         ) : (
-          <div style={styles.container}>
+          <div>
             <div style={styles.card}>
               <h2 style={{ fontSize: '64px', margin: '0 0 30px 0' }}>🧧</h2>
               <h2 style={{ marginBottom: '25px', fontSize: '32px' }}>
