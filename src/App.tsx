@@ -5,7 +5,7 @@ import { useWallet } from './hooks/useWallet';
 import { useContract } from './hooks/useContract';
 
 const App: React.FC = () => {
-  const { account, provider, isConnecting, connectWallet, disconnectWallet } = useWallet();
+  const { account, provider, isConnecting, connectWallet, disconnectWallet, setAccount } = useWallet();
   const {
     loading,
     createEnvelope,
@@ -25,6 +25,15 @@ const App: React.FC = () => {
   const [isOwner, setIsOwner] = useState(false);
   const [contractConstants, setContractConstants] = useState({ totalAmount: "0.05", maxRecipients: 6 });
   const [lastUpdateTime, setLastUpdateTime] = useState<number>(Date.now());
+
+  // 处理账户变化的回调
+  const handleAccountChange = (newAccount: string) => {
+    if (setAccount) {
+      setAccount(newAccount);
+      // 触发数据重新加载
+      setLastUpdateTime(Date.now());
+    }
+  };
 
   const fetchRedPacketInfo = useCallback(async () => {
     if (provider) {
@@ -350,6 +359,7 @@ const App: React.FC = () => {
             isConnecting={isConnecting}
             onConnect={connectWallet}
             onDisconnect={disconnectWallet}
+            onAccountChange={handleAccountChange}
           />
         </div>
       </div>
