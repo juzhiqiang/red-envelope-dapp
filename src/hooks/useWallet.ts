@@ -61,6 +61,18 @@ export const useWallet = () => {
     }
   }, []);
 
+  // 手动设置账户的方法（用于切换账户）
+  const updateAccount = useCallback((newAccount: string) => {
+    if (newAccount !== account) {
+      setAccount(newAccount);
+      // 更新 provider 以确保使用新账户
+      if (window.ethereum) {
+        const newProvider = new BrowserProvider(window.ethereum);
+        setProvider(newProvider);
+      }
+    }
+  }, [account]);
+
   useEffect(() => {
     checkConnection();
 
@@ -69,7 +81,7 @@ export const useWallet = () => {
         console.log('Accounts changed:', accounts);
         if (accounts.length === 0) {
           disconnectWallet();
-        } else {
+        } else if (accounts[0] !== account) {
           setAccount(accounts[0]);
           // 添加空值检查
           if (window.ethereum) {
@@ -94,7 +106,7 @@ export const useWallet = () => {
         }
       };
     }
-  }, [checkConnection, disconnectWallet]);
+  }, [checkConnection, disconnectWallet, account]);
 
   return {
     account,
@@ -102,6 +114,7 @@ export const useWallet = () => {
     isConnecting,
     connectWallet,
     disconnectWallet,
-    checkConnection
+    checkConnection,
+    setAccount: updateAccount // 导出 setAccount 方法用于手动切换账户
   };
 };
