@@ -1,1 +1,0 @@
-# 此文件已删除 - AddressAvatar 组件未被使用
