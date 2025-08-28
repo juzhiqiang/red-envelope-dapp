@@ -9,45 +9,26 @@
 
 ## 新增文件
 
-### 1. `src/hooks/useENS.ts`
-- 自定义 Hook，负责查询 ENS 名称和头像
-- 支持异步加载和错误处理
-- 自动处理 IPFS 链接转换
+### 1. 核心组件
+- `src/components/AddressAvatar.tsx` + `AddressAvatar.css` - 智能头像组件
+- `src/components/UserList.tsx` + `UserList.css` - 增强的用户列表组件
+- `src/components/WalletHeader.tsx` + `WalletHeader.css` - 钱包连接头部组件
 
-### 2. `src/utils/avatarGenerator.ts` 
-- 基于钱包地址生成唯一的渐变色头像
-- 地址格式化工具函数
-- 图片URL验证功能
+### 2. 工具和 Hooks
+- `src/hooks/useENS.ts` - ENS 数据查询 Hook
+- `src/utils/avatarGenerator.ts` - 头像生成工具
 
-### 3. `src/components/AddressAvatar.tsx`
-- 核心头像组件，智能切换ENS头像和生成头像
-- 支持加载状态和错误处理
-- 响应式设计，支持不同尺寸
+### 3. 样式文件
+- `src/components/AddressAvatar.css` - 头像组件样式
+- `src/components/UserList.css` - 用户列表样式
+- `src/components/WalletHeader.css` - 钱包头部样式
 
-### 4. `src/components/UserList.tsx`
-- 更新的用户列表组件，集成头像展示
-- 支持当前用户高亮显示
-- 优化的移动端体验
-
-### 5. `src/components/WalletHeader.tsx`
-- 钱包连接头部组件，显示用户信息
-- 集成 ENS 支持和余额显示
-- 连接/断开连接功能
+### 4. 文档
+- `docs/ENS_INTEGRATION.md` - 详细的集成指南
 
 ## 安装依赖
 
-需要添加 `styled-jsx` 依赖来支持组件样式：
-
-```bash
-npm install styled-jsx@^5.1.0
-# 或
-yarn add styled-jsx@^5.1.0
-
-# 开发依赖
-npm install -D @types/styled-jsx@^3.4.4
-# 或  
-yarn add -D @types/styled-jsx@^3.4.4
-```
+**无需额外依赖！** 所有样式都使用标准 CSS 文件，不需要安装 styled-jsx 或其他样式库。
 
 ## 使用方法
 
@@ -123,18 +104,46 @@ import UserList from './components/UserList';
 
 ### 自定义样式
 
-可以通过传入 `className` 属性来自定义样式：
+由于使用了独立的 CSS 文件，您可以轻松自定义样式：
 
 ```css
-.custom-avatar .ens-name {
-  color: #your-color;
+/* 自定义 ENS 名称颜色 */
+.address-avatar .ens-name {
+  color: #your-custom-color;
   font-weight: bold;
 }
 
-.custom-avatar .wallet-address {
+/* 自定义钱包地址样式 */
+.address-avatar .wallet-address {
   font-size: 12px;
+  color: #your-custom-color;
+}
+
+/* 自定义头像悬停效果 */
+.address-avatar .avatar-image:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 ```
+
+## 样式架构
+
+### CSS 文件组织
+```
+src/components/
+├── AddressAvatar.tsx
+├── AddressAvatar.css      # 头像组件样式
+├── UserList.tsx  
+├── UserList.css           # 用户列表样式
+├── WalletHeader.tsx
+└── WalletHeader.css       # 钱包头部样式
+```
+
+### 样式特点
+- **模块化**：每个组件有独立的 CSS 文件
+- **BEM 风格**：使用清晰的类名命名规范
+- **响应式**：包含移动端适配
+- **可维护**：样式与逻辑分离，易于修改
 
 ## 注意事项
 
@@ -142,14 +151,37 @@ import UserList from './components/UserList';
 2. **加载性能**：首次查询 ENS 可能需要几秒钟
 3. **错误处理**：组件内置了完善的错误处理机制
 4. **移动端适配**：在小屏设备上会自动隐藏部分信息
+5. **CSS 优先级**：确保正确导入 CSS 文件
 
 ## 兼容性
 
 - ✅ React 18+
 - ✅ TypeScript 4.7+
 - ✅ Ethers.js v6
+- ✅ 标准 CSS3（无需额外依赖）
 - ✅ 现代浏览器（Chrome, Firefox, Safari, Edge）
 - ✅ 移动端浏览器
+
+## 文件结构更新
+
+### 重构前（styled-jsx）
+```typescript
+// 组件内使用 styled-jsx
+<style jsx>{`
+  .component {
+    /* 样式 */
+  }
+`}</style>
+```
+
+### 重构后（独立 CSS）
+```typescript
+// 导入独立 CSS 文件
+import './Component.css';
+
+// 组件中直接使用类名
+<div className="component">
+```
 
 ## 故障排除
 
@@ -164,6 +196,12 @@ import UserList from './components/UserList';
 - 检查浏览器控制台的错误信息
 
 ### 样式问题？
-- 确保安装了 `styled-jsx` 依赖
-- 检查CSS优先级设置
+- 确保正确导入了对应的 CSS 文件
+- 检查 CSS 文件路径是否正确
 - 验证组件的 className 属性
+- 使用浏览器开发工具检查样式加载
+
+### CSS 不生效？
+- 确认 CSS 文件已正确导入到组件中
+- 检查 CSS 选择器的优先级
+- 验证 webpack 配置是否支持 CSS 文件导入
