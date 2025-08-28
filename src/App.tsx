@@ -5,7 +5,7 @@ import { useWallet } from './hooks/useWallet';
 import { useContract } from './hooks/useContract';
 
 const App: React.FC = () => {
-  const { account, provider, isConnecting, connectWallet, disconnectWallet, setAccount } = useWallet();
+  const { account, provider, isConnecting, isDisconnecting, connectWallet, disconnectWallet, setAccount } = useWallet();
   const {
     loading,
     createEnvelope,
@@ -357,6 +357,7 @@ const App: React.FC = () => {
           <WalletConnection
             account={account}
             isConnecting={isConnecting}
+            isDisconnecting={isDisconnecting}
             onConnect={connectWallet}
             onDisconnect={disconnectWallet}
             onAccountChange={handleAccountChange}
