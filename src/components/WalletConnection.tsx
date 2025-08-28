@@ -7,7 +7,7 @@ interface WalletConnectionProps {
   isConnecting: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
-  onAccountChange?: (account: string) => void;
+  onAccountChange?: (account: string) => void | boolean; // 修改返回类型
   isDisconnecting?: boolean;
 }
 
@@ -123,7 +123,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
       });
       setAvailableAccounts(accounts);
       
-      // 批量获取ENS信息，避免重复请求 - 修复TypeScript类型错误
+      // 批量获取ENS信息，避免重复请求
       const promises = accounts.map(async (acc: string) => {
         if (acc !== account && !accountsInfo.has(acc)) {
           try {
@@ -178,11 +178,17 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
         return;
       }
 
-      // 调用父组件的切换回调 - 这里完全不调用任何 MetaMask API
+      // 调用父组件的切换回调 - 修复类型检查
       if (onAccountChange) {
-        const success = onAccountChange(selectedAccount);
-        if (success === false) {
-          console.warn('父组件拒绝了账户切换');
+        try {
+          const result = onAccountChange(selectedAccount);
+          // 如果返回值是 boolean 且为 false，则表示切换失败
+          if (result === false) {
+            console.warn('父组件拒绝了账户切换');
+            return;
+          }
+        } catch (error) {
+          console.error('账户切换回调执行失败:', error);
           return;
         }
       }
