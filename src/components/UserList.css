@@ -1,0 +1,164 @@
+/* src/components/UserList.css */
+.user-list {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.user-list .user-list-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.user-list .user-list-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-list .user-list-header h3::before {
+  content: '📋';
+  font-size: 16px;
+}
+
+.user-list .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.user-list .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.user-list .user-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-list .user-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.user-list .user-item:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.user-list .user-item.current-user {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.user-list .user-item.current-user .name-text {
+  color: white !important;
+}
+
+.user-list .user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-list .claim-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.user-list .amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-list .amount-value {
+  font-weight: 600;
+  font-size: 16px;
+  color: #2e7d32;
+}
+
+.user-list .current-user .amount-value {
+  color: #fff;
+}
+
+.user-list .current-user-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.user-list .timestamp {
+  font-size: 12px;
+  color: #666;
+  font-weight: 400;
+}
+
+.user-list .current-user .timestamp {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.user-list .rank-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: linear-gradient(45deg, #ff6b6b, #feca57);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.user-list .user-item.current-user .rank-badge {
+  background: linear-gradient(45deg, #ffd700, #ffed4a);
+  color: #333;
+}
+
+/* 移动端响应式 */
+@media (max-width: 768px) {
+  .user-list {
+    padding: 16px;
+  }
+  
+  .user-list .user-item {
+    padding: 12px;
+  }
+  
+  .user-list .claim-details {
+    align-items: center;
+  }
+  
+  .user-list .amount {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
