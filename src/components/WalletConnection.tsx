@@ -7,13 +7,19 @@ interface WalletConnectionProps {
   isConnecting: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
-  onAccountChange?: (account: string) => void; // 新增：账户变化回调
-  isDisconnecting?: boolean; // 新增：断开连接状态
+  onAccountChange?: (account: string) => void; // 账户变化回调
+  isDisconnecting?: boolean; // 断开连接状态
 }
 
 interface ENSInfo {
   name: string | null;
   avatar: string | null;
+}
+
+interface AccountInfo {
+  address: string;
+  ensName?: string;
+  ensAvatar?: string;
 }
 
 // 颜色常量
@@ -33,6 +39,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
   const [ensInfo, setEnsInfo] = useState<ENSInfo>({ name: null, avatar: null });
   const [showWalletMenu, setShowWalletMenu] = useState(false);
   const [availableAccounts, setAvailableAccounts] = useState<string[]>([]);
+  const [accountsInfo, setAccountsInfo] = useState<Map<string, AccountInfo>>(new Map());
   const [isLoadingEns, setIsLoadingEns] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
 
@@ -56,11 +63,10 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
     );
   };
 
-  // 获取 ENS 信息
-  const fetchENSInfo = useCallback(async (address: string) => {
-    if (!address || !window.ethereum) return;
+  // 获取单个账户的 ENS 信息
+  const fetchAccountENSInfo = useCallback(async (address: string) => {
+    if (!address || !window.ethereum) return null;
     
-    setIsLoadingEns(true);
     try {
       const provider = new (window as any).ethers.providers.Web3Provider(window.ethereum);
       
@@ -73,25 +79,49 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
             if (resolver) {
               avatar = await resolver.getAvatar();
             }
-            setEnsInfo({ name: ensName, avatar });
+            return { address, ensName, ensAvatar: avatar };
           } catch (avatarError) {
             console.log('Error fetching ENS avatar:', avatarError);
-            setEnsInfo({ name: ensName, avatar: null });
+            return { address, ensName, ensAvatar: null };
           }
-        } else {
-          setEnsInfo({ name: null, avatar: null });
         }
       } catch (ensError) {
         console.log('Error fetching ENS name:', ensError);
-        setEnsInfo({ name: null, avatar: null });
       }
     } catch (error) {
-      console.error('Error fetching ENS info:', error);
+      console.error('Error fetching ENS info for', address, error);
+    }
+    
+    return { address };
+  }, []);
+
+  // 获取当前账户的 ENS 信息
+  const fetchCurrentAccountENSInfo = useCallback(async (address: string) => {
+    if (!address || !window.ethereum) return;
+    
+    setIsLoadingEns(true);
+    try {
+      const info = await fetchAccountENSInfo(address);
+      if (info) {
+        setEnsInfo({ 
+          name: info.ensName || null, 
+          avatar: info.ensAvatar || null 
+        });
+        
+        // 更新账户信息缓存
+        setAccountsInfo(prev => {
+          const newMap = new Map(prev);
+          newMap.set(address, info);
+          return newMap;
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching current account ENS info:', error);
       setEnsInfo({ name: null, avatar: null });
     } finally {
       setIsLoadingEns(false);
     }
-  }, []);
+  }, [fetchAccountENSInfo]);
 
   // 获取可用账户列表
   const fetchAvailableAccounts = useCallback(async () => {
@@ -102,81 +132,64 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
         method: 'eth_accounts'
       });
       setAvailableAccounts(accounts);
+      
+      // 为其他账户预加载 ENS 信息（后台静默加载）
+      accounts.forEach(async (acc) => {
+        if (acc !== account && !accountsInfo.has(acc)) {
+          try {
+            const info = await fetchAccountENSInfo(acc);
+            if (info) {
+              setAccountsInfo(prev => {
+                const newMap = new Map(prev);
+                newMap.set(acc, info);
+                return newMap;
+              });
+            }
+          } catch (error) {
+            // 静默处理错误，不影响主要功能
+            console.log('Background ENS fetch failed for', acc);
+          }
+        }
+      });
     } catch (error) {
       console.error('Error fetching accounts:', error);
       setAvailableAccounts([]);
     }
-  }, []);
+  }, [account, accountsInfo, fetchAccountENSInfo]);
 
-  // 切换账户 - 改进版本
+  // 直接切换账户 - 不再询问确认
   const switchAccount = async (selectedAccount: string) => {
-    if (!window.ethereum || selectedAccount === account) {
+    if (!window.ethereum || selectedAccount === account || isSwitching) {
       setShowWalletMenu(false);
       return;
     }
 
     setIsSwitching(true);
+    
     try {
-      // 方法1: 尝试直接请求切换到指定账户
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumAccount',
-          params: [{ address: selectedAccount }]
-        });
-        
-        // 如果成功，通过回调通知父组件
-        if (onAccountChange) {
-          onAccountChange(selectedAccount);
-        }
-        
-        setShowWalletMenu(false);
-        setIsSwitching(false);
-        return;
-      } catch (switchError: any) {
-        // 如果方法不支持，尝试方法2
-        console.log('Direct switch not supported, trying alternative method');
+      // 直接通知父组件切换账户，不再通过 MetaMask API
+      if (onAccountChange) {
+        onAccountChange(selectedAccount);
       }
-
-      // 方法2: 请求重新选择账户
-      try {
-        const accounts = await window.ethereum.request({
-          method: 'wallet_requestPermissions',
-          params: [{ eth_accounts: {} }]
+      
+      // 立即更新本地状态以提供即时反馈
+      setEnsInfo({ name: null, avatar: null });
+      
+      // 从缓存中获取新账户的 ENS 信息
+      const cachedInfo = accountsInfo.get(selectedAccount);
+      if (cachedInfo) {
+        setEnsInfo({
+          name: cachedInfo.ensName || null,
+          avatar: cachedInfo.ensAvatar || null
         });
-        
-        // 获取新的账户列表
-        const newAccounts = await window.ethereum.request({
-          method: 'eth_accounts'
-        });
-        
-        if (newAccounts && newAccounts.length > 0) {
-          const newAccount = newAccounts[0];
-          if (onAccountChange && newAccount !== account) {
-            onAccountChange(newAccount);
-          }
-        }
-        
-        setShowWalletMenu(false);
-      } catch (permissionError) {
-        console.error('Permission request failed:', permissionError);
-        
-        // 方法3: 提示用户手动切换
-        alert('请在 MetaMask 中手动切换到所需账户，然后刷新页面');
       }
+      
+      setShowWalletMenu(false);
     } catch (error) {
       console.error('Error switching account:', error);
-      // 如果所有方法都失败，提供用户友好的提示
-      alert('账户切换失败。请在 MetaMask 中手动选择账户，然后刷新页面');
     } finally {
       setIsSwitching(false);
-      setShowWalletMenu(false);
     }
-  };
-
-  // 处理断开连接
-  const handleDisconnect = async () => {
-    setShowWalletMenu(false);
-    await onDisconnect();
   };
 
   // 处理 ENS 头像加载错误
@@ -197,16 +210,28 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
     }
   };
 
+  // 获取账户显示名称
+  const getAccountDisplayName = (address: string) => {
+    const cached = accountsInfo.get(address);
+    return cached?.ensName || formatAddress(address);
+  };
+
+  // 获取账户头像
+  const getAccountAvatar = (address: string) => {
+    const cached = accountsInfo.get(address);
+    return cached?.ensAvatar;
+  };
+
   // 当账户变化时获取 ENS 信息
   useEffect(() => {
     if (account) {
-      fetchENSInfo(account);
+      fetchCurrentAccountENSInfo(account);
       fetchAvailableAccounts();
     } else {
       setEnsInfo({ name: null, avatar: null });
       setAvailableAccounts([]);
     }
-  }, [account, fetchENSInfo, fetchAvailableAccounts]);
+  }, [account, fetchCurrentAccountENSInfo, fetchAvailableAccounts]);
 
   // 处理账户变化
   useEffect(() => {
@@ -259,14 +284,16 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
       );
     }
 
-    if (ensInfo.avatar && address === account) {
+    const avatarUrl = address === account ? ensInfo.avatar : getAccountAvatar(address);
+    
+    if (avatarUrl) {
       return (
         <img
-          src={ensInfo.avatar}
-          alt="ENS Avatar"
+          src={avatarUrl}
+          alt="Avatar"
           className="avatar"
           style={{ width: size, height: size }}
-          onError={handleAvatarError}
+          onError={address === account ? handleAvatarError : undefined}
         />
       );
     }
@@ -285,6 +312,12 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
         {address.slice(2, 4)}
       </div>
     );
+  };
+
+  // 处理断开连接
+  const handleDisconnect = async () => {
+    setShowWalletMenu(false);
+    await onDisconnect();
   };
 
   return (
@@ -344,7 +377,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
               )}
             </div>
 
-            {/* 下拉箭头或状态指示 */}
+            {/* 状态指示 */}
             {isDisconnecting ? (
               <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <div className="loading-spinner" style={{
@@ -416,11 +449,11 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
                   color: 'rgba(255, 255, 255, 0.6)',
                   fontSize: '12px'
                 }}>
-                  🟢 已连接
+                  🟢 当前账户
                 </div>
               </div>
 
-              {/* 账户列表 */}
+              {/* 快速切换账户列表 */}
               {availableAccounts.length > 1 && (
                 <div>
                   <div style={{
@@ -428,48 +461,82 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
                     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                     color: 'rgba(255, 255, 255, 0.8)',
                     fontSize: '12px',
-                    fontWeight: '500'
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
                   }}>
-                    {TEXT?.SWITCH_ACCOUNT || '切换账户'}
+                    <span>{TEXT?.SWITCH_ACCOUNT || '快速切换'}</span>
+                    <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '10px' }}>
+                      一键切换
+                    </span>
                   </div>
                   {availableAccounts
                     .filter(acc => acc.toLowerCase() !== account.toLowerCase())
-                    .slice(0, 3)
-                    .map((acc, index) => (
-                      <div
-                        key={acc}
-                        className="account-item"
-                        onClick={() => switchAccount(acc)}
-                        style={{
-                          borderBottom: index === availableAccounts.filter(a => a.toLowerCase() !== account.toLowerCase()).slice(0, 3).length - 1 
-                            ? '1px solid rgba(255, 255, 255, 0.1)' 
-                            : 'none'
-                        }}
-                      >
-                        {renderAvatar(acc)}
-                        <span style={{
-                          color: 'white',
-                          fontSize: '14px'
-                        }}>
-                          {formatAddress(acc)}
-                        </span>
-                      </div>
-                    ))}
+                    .slice(0, 4) // 显示最多4个其他账户
+                    .map((acc, index) => {
+                      const displayName = getAccountDisplayName(acc);
+                      const isENS = displayName !== formatAddress(acc);
+                      
+                      return (
+                        <div
+                          key={acc}
+                          className="account-item"
+                          onClick={() => switchAccount(acc)}
+                          style={{
+                            borderBottom: index === Math.min(3, availableAccounts.filter(a => a.toLowerCase() !== account.toLowerCase()).length - 1)
+                              ? '1px solid rgba(255, 255, 255, 0.1)' 
+                              : 'none',
+                            position: 'relative',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {renderAvatar(acc)}
+                          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                            <span style={{
+                              color: 'white',
+                              fontSize: '14px',
+                              fontWeight: isENS ? '500' : 'normal'
+                            }}>
+                              {displayName}
+                            </span>
+                            {isENS && (
+                              <span style={{
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                fontSize: '12px'
+                              }}>
+                                {formatAddress(acc)}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{
+                            color: 'rgba(255, 255, 255, 0.4)',
+                            fontSize: '12px',
+                            marginLeft: '8px'
+                          }}>
+                            ➤
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               )}
 
-              {/* 手动切换提示 */}
-              {availableAccounts.length > 1 && (
-                <div style={{
-                  padding: '8px 16px',
-                  fontSize: '11px',
-                  color: 'rgba(255, 255, 255, 0.5)',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                  textAlign: 'center'
-                }}>
-                  💡 您也可以直接在 MetaMask 中切换账户
-                </div>
-              )}
+              {/* 添加账户提示 */}
+              <div style={{
+                padding: '8px 16px',
+                fontSize: '11px',
+                color: 'rgba(255, 255, 255, 0.5)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px'
+              }}>
+                <span>💡</span>
+                <span>在 MetaMask 中添加更多账户可以快速切换</span>
+              </div>
 
               {/* 断开连接按钮 */}
               <div
