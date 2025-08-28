@@ -13,6 +13,137 @@ interface WalletConnectionProps {
   isDisconnecting?: boolean;
 }
 
+// 独立的账户项组件，支持 ENS
+interface AccountItemProps {
+  address: string;
+  onClick: () => void;
+  isLast: boolean;
+  isSwitching: boolean;
+  onAvatarError: () => void;
+  hasAvatarError: boolean;
+}
+
+const AccountItem: React.FC<AccountItemProps> = ({
+  address,
+  onClick,
+  isLast,
+  isSwitching,
+  onAvatarError,
+  hasAvatarError
+}) => {
+  const { name: ensName, avatar: ensAvatar, isLoading: ensLoading } = useENS(address);
+
+  const renderAccountAvatar = () => {
+    if (ensLoading) {
+      return (
+        <div 
+          style={{ 
+            width: 32, 
+            height: 32,
+            borderRadius: '50%',
+            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.5s infinite'
+          }}
+        />
+      );
+    }
+
+    if (ensAvatar && !hasAvatarError) {
+      return (
+        <img
+          src={ensAvatar}
+          alt={ensName || 'ENS Avatar'}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            objectFit: 'cover',
+            border: '2px solid rgba(255, 255, 255, 0.3)'
+          }}
+          onError={onAvatarError}
+        />
+      );
+    }
+
+    return (
+      <img
+        src={generateGradientAvatar(address)}
+        alt="Generated Avatar"
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          border: '2px solid rgba(255, 255, 255, 0.3)'
+        }}
+      />
+    );
+  };
+
+  const getAccountDisplayName = () => {
+    if (ensLoading) {
+      return (
+        <div 
+          style={{
+            width: '60px',
+            height: '14px',
+            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
+            backgroundSize: '200% 100%',
+            borderRadius: '4px',
+            animation: 'shimmer 1.5s infinite'
+          }}
+        />
+      );
+    }
+
+    return (
+      <span style={{
+        color: ensName ? '#00d4ff' : 'white',
+        fontSize: '14px',
+        fontWeight: ensName ? '600' : 'normal'
+      }}>
+        {ensName || formatAddress(address)}
+      </span>
+    );
+  };
+
+  return (
+    <div
+      className="account-item"
+      onClick={onClick}
+      style={{
+        borderBottom: isLast ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+        position: 'relative',
+        cursor: isSwitching ? 'not-allowed' : 'pointer',
+        opacity: isSwitching ? 0.6 : 1,
+        pointerEvents: isSwitching ? 'none' : 'auto'
+      }}
+    >
+      {renderAccountAvatar()}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        {getAccountDisplayName()}
+        {ensName && (
+          <span style={{
+            color: 'rgba(255, 255, 255, 0.6)',
+            fontSize: '12px',
+            fontFamily: 'Courier New, monospace'
+          }}>
+            {formatAddress(address)}
+          </span>
+        )}
+      </div>
+      <div style={{
+        color: 'rgba(46, 213, 115, 0.8)',
+        fontSize: '14px',
+        marginLeft: '8px',
+        fontWeight: 'bold'
+      }}>
+        ⚡
+      </div>
+    </div>
+  );
+};
+
 const WalletConnection: React.FC<WalletConnectionProps> = ({
   account,
   isConnecting,
@@ -455,137 +586,6 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
           {isConnecting ? (TEXT?.CONNECTING || '连接中...') : (TEXT?.CONNECT_WALLET || '连接 MetaMask')}
         </button>
       )}
-    </div>
-  );
-};
-
-// 独立的账户项组件，支持 ENS
-interface AccountItemProps {
-  address: string;
-  onClick: () => void;
-  isLast: boolean;
-  isSwitching: boolean;
-  onAvatarError: () => void;
-  hasAvatarError: boolean;
-}
-
-const AccountItem: React.FC<AccountItemProps> = ({
-  address,
-  onClick,
-  isLast,
-  isSwitching,
-  onAvatarError,
-  hasAvatarError
-}) => {
-  const { name: ensName, avatar: ensAvatar, isLoading: ensLoading } = useENS(address);
-
-  const renderAccountAvatar = () => {
-    if (ensLoading) {
-      return (
-        <div 
-          style={{ 
-            width: 32, 
-            height: 32,
-            borderRadius: '50%',
-            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 1.5s infinite'
-          }}
-        />
-      );
-    }
-
-    if (ensAvatar && !hasAvatarError) {
-      return (
-        <img
-          src={ensAvatar}
-          alt={ensName || 'ENS Avatar'}
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            objectFit: 'cover',
-            border: '2px solid rgba(255, 255, 255, 0.3)'
-          }}
-          onError={onAvatarError}
-        />
-      );
-    }
-
-    return (
-      <img
-        src={generateGradientAvatar(address)}
-        alt="Generated Avatar"
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          border: '2px solid rgba(255, 255, 255, 0.3)'
-        }}
-      />
-    );
-  };
-
-  const getAccountDisplayName = () => {
-    if (ensLoading) {
-      return (
-        <div 
-          style={{
-            width: '60px',
-            height: '14px',
-            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
-            backgroundSize: '200% 100%',
-            borderRadius: '4px',
-            animation: 'shimmer 1.5s infinite'
-          }}
-        />
-      );
-    }
-
-    return (
-      <span style={{
-        color: ensName ? '#00d4ff' : 'white',
-        fontSize: '14px',
-        fontWeight: ensName ? '600' : 'normal'
-      }}>
-        {ensName || formatAddress(address)}
-      </span>
-    );
-  };
-
-  return (
-    <div
-      className="account-item"
-      onClick={onClick}
-      style={{
-        borderBottom: isLast ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-        position: 'relative',
-        cursor: isSwitching ? 'not-allowed' : 'pointer',
-        opacity: isSwitching ? 0.6 : 1,
-        pointerEvents: isSwitching ? 'none' : 'auto'
-      }}
-    >
-      {renderAccountAvatar()}
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-        {getAccountDisplayName()}
-        {ensName && (
-          <span style={{
-            color: 'rgba(255, 255, 255, 0.6)',
-            fontSize: '12px',
-            fontFamily: 'Courier New, monospace'
-          }}>
-            {formatAddress(address)}
-          </span>
-        )}
-      </div>
-      <div style={{
-        color: 'rgba(46, 213, 115, 0.8)',
-        fontSize: '14px',
-        marginLeft: '8px',
-        fontWeight: 'bold'
-      }}>
-        ⚡
-      </div>
     </div>
   );
 };
