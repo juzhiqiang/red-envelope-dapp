@@ -12,6 +12,137 @@ interface EnvelopeViewerProps {
   loading: boolean;
 }
 
+// 独立的已抢取用户项组件，支持 ENS
+interface ClaimedUserItemProps {
+  address: string;
+  index: number;
+  currentUser: string | null;
+  onAvatarError: () => void;
+  hasAvatarError: boolean;
+}
+
+const ClaimedUserItem: React.FC<ClaimedUserItemProps> = ({
+  address,
+  index,
+  currentUser,
+  onAvatarError,
+  hasAvatarError
+}) => {
+  const { name: ensName, avatar: ensAvatar, isLoading: ensLoading } = useENS(address);
+  const isCurrentUser = currentUser && address.toLowerCase() === currentUser.toLowerCase();
+
+  const renderAvatar = () => {
+    if (ensLoading) {
+      return (
+        <div 
+          style={{ 
+            width: 20, 
+            height: 20,
+            borderRadius: '50%',
+            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.5s infinite',
+            marginRight: '8px'
+          }}
+        />
+      );
+    }
+
+    if (ensAvatar && !hasAvatarError) {
+      return (
+        <img
+          src={ensAvatar}
+          alt={ensName || 'Avatar'}
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            objectFit: 'cover',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            marginRight: '8px'
+          }}
+          onError={onAvatarError}
+        />
+      );
+    }
+
+    return (
+      <img
+        src={generateGradientAvatar(address)}
+        alt="Avatar"
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          marginRight: '8px'
+        }}
+      />
+    );
+  };
+
+  const getDisplayName = () => {
+    if (ensLoading) {
+      return (
+        <div 
+          style={{
+            width: '80px',
+            height: '12px',
+            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
+            backgroundSize: '200% 100%',
+            borderRadius: '4px',
+            animation: 'shimmer 1.5s infinite'
+          }}
+        />
+      );
+    }
+
+    const displayName = ensName || formatAddress(address);
+    const isENS = Boolean(ensName);
+
+    return (
+      <span style={{ color: isENS ? '#00d4ff' : 'white', fontWeight: isENS ? '600' : 'normal' }}>
+        {displayName}
+        {isCurrentUser && <span style={{ color: '#ffd700', marginLeft: '4px' }}>(你)</span>}
+      </span>
+    );
+  };
+
+  return (
+    <div style={{
+      background: isCurrentUser ? 'rgba(255, 215, 0, 0.2)' : 'rgba(0, 0, 0, 0.2)',
+      border: isCurrentUser ? '1px solid rgba(255, 215, 0, 0.5)' : 'none',
+      padding: '8px 10px',
+      borderRadius: '8px',
+      marginBottom: '5px',
+      fontSize: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <span style={{ marginRight: '8px', fontWeight: 'bold' }}>{index + 1}.</span>
+        {renderAvatar()}
+        {getDisplayName()}
+        {ensName && (
+          <div style={{ 
+            marginLeft: '6px', 
+            fontSize: '8px', 
+            background: 'rgba(0, 212, 255, 0.3)', 
+            color: '#00d4ff',
+            padding: '1px 4px',
+            borderRadius: '6px',
+            fontWeight: 'bold'
+          }}>
+            ENS
+          </div>
+        )}
+      </div>
+      <span style={{ color: '#2ed573', fontWeight: 'bold' }}>✓ 已抢到</span>
+    </div>
+  );
+};
+
 const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
   onQueryEnvelope,
   onClaimEnvelope,
@@ -26,8 +157,9 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
   const [claiming, setClaiming] = useState(false);
   const [avatarErrors, setAvatarErrors] = useState<Set<string>>(new Set());
 
-  // 为创建者使用 ENS
-  const { name: creatorEnsName, avatar: creatorEnsAvatar, isLoading: creatorEnsLoading } = useENS(envelopeInfo?.creator);
+  // 为创建者使用 ENS - 修复条件判断
+  const creatorAddress = envelopeInfo?.creator || null;
+  const { name: creatorEnsName, avatar: creatorEnsAvatar, isLoading: creatorEnsLoading } = useENS(creatorAddress);
 
   const handleQuery = async () => {
     if (!envelopeId || !userAddress) return;
@@ -456,137 +588,6 @@ const EnvelopeViewer: React.FC<EnvelopeViewerProps> = ({
           }
         }
       `}</style>
-    </div>
-  );
-};
-
-// 独立的已抢取用户项组件，支持 ENS
-interface ClaimedUserItemProps {
-  address: string;
-  index: number;
-  currentUser: string | null;
-  onAvatarError: () => void;
-  hasAvatarError: boolean;
-}
-
-const ClaimedUserItem: React.FC<ClaimedUserItemProps> = ({
-  address,
-  index,
-  currentUser,
-  onAvatarError,
-  hasAvatarError
-}) => {
-  const { name: ensName, avatar: ensAvatar, isLoading: ensLoading } = useENS(address);
-  const isCurrentUser = currentUser && address.toLowerCase() === currentUser.toLowerCase();
-
-  const renderAvatar = () => {
-    if (ensLoading) {
-      return (
-        <div 
-          style={{ 
-            width: 20, 
-            height: 20,
-            borderRadius: '50%',
-            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 1.5s infinite',
-            marginRight: '8px'
-          }}
-        />
-      );
-    }
-
-    if (ensAvatar && !hasAvatarError) {
-      return (
-        <img
-          src={ensAvatar}
-          alt={ensName || 'Avatar'}
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: '50%',
-            objectFit: 'cover',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            marginRight: '8px'
-          }}
-          onError={onAvatarError}
-        />
-      );
-    }
-
-    return (
-      <img
-        src={generateGradientAvatar(address)}
-        alt="Avatar"
-        style={{
-          width: 20,
-          height: 20,
-          borderRadius: '50%',
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-          marginRight: '8px'
-        }}
-      />
-    );
-  };
-
-  const getDisplayName = () => {
-    if (ensLoading) {
-      return (
-        <div 
-          style={{
-            width: '80px',
-            height: '12px',
-            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)',
-            backgroundSize: '200% 100%',
-            borderRadius: '4px',
-            animation: 'shimmer 1.5s infinite'
-          }}
-        />
-      );
-    }
-
-    const displayName = ensName || formatAddress(address);
-    const isENS = Boolean(ensName);
-
-    return (
-      <span style={{ color: isENS ? '#00d4ff' : 'white', fontWeight: isENS ? '600' : 'normal' }}>
-        {displayName}
-        {isCurrentUser && <span style={{ color: '#ffd700', marginLeft: '4px' }}>(你)</span>}
-      </span>
-    );
-  };
-
-  return (
-    <div style={{
-      background: isCurrentUser ? 'rgba(255, 215, 0, 0.2)' : 'rgba(0, 0, 0, 0.2)',
-      border: isCurrentUser ? '1px solid rgba(255, 215, 0, 0.5)' : 'none',
-      padding: '8px 10px',
-      borderRadius: '8px',
-      marginBottom: '5px',
-      fontSize: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <span style={{ marginRight: '8px', fontWeight: 'bold' }}>{index + 1}.</span>
-        {renderAvatar()}
-        {getDisplayName()}
-        {ensName && (
-          <div style={{ 
-            marginLeft: '6px', 
-            fontSize: '8px', 
-            background: 'rgba(0, 212, 255, 0.3)', 
-            color: '#00d4ff',
-            padding: '1px 4px',
-            borderRadius: '6px',
-            fontWeight: 'bold'
-          }}>
-            ENS
-          </div>
-        )}
-      </div>
-      <span style={{ color: '#2ed573', fontWeight: 'bold' }}>✓ 已抢到</span>
     </div>
   );
 };
