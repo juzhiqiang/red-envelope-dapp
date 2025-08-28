@@ -32,7 +32,6 @@ const AccountItem: React.FC<AccountItemProps> = ({
   hasAvatarError
 }) => {
   const { name: ensName, avatar: ensAvatar, isLoading: ensLoading } = useENS(address);
-
   const renderAccountAvatar = () => {
     if (ensLoading) {
       return (
@@ -159,7 +158,6 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
   
   // 为主账户使用 ENS
   const { name: mainEnsName, avatar: mainEnsAvatar, isLoading: mainEnsLoading } = useENS(account);
-
   const fetchAvailableAccounts = useCallback(async () => {
     if (!window.ethereum) return;
     
@@ -255,7 +253,6 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({
         </div>
       );
     }
-
     // 如果有 ENS 数据且正在加载
     if (ensData?.isLoading) {
       return (

@@ -1,6 +1,6 @@
 // src/hooks/useENS.ts
 import { useState, useEffect } from "react";
-import { ethers } from "ethers";
+import { BrowserProvider, ethers } from "ethers";
 
 interface ENSData {
   name: string | null;
@@ -29,20 +29,17 @@ const useENS = (address: string | null): ENSData => {
     }
 
     const fetchENSData = async () => {
+      const provider = new BrowserProvider(window.ethereum as any);
+
       setEnsData((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        // 使用主网 provider 来查询 ENS
-        const provider = new ethers.JsonRpcProvider(
-          "https://eth-mainnet.g.alchemy.com/v2/4522c2c01dce4532a23dd57f9c816286"
-        );
-
         // 获取 ENS 名称
         const ensName = await provider.lookupAddress(address);
-        let avatar = null;
+        let avatar = "";
         if (ensName) {
           const resolver = await provider.getResolver(ensName);
-          const avatar = await resolver?.getText("avatar");
+          avatar = await resolver?.getText("avatar") || '';
           console.log("ENS 名:", ensName, "头像:", avatar);
         }
 
